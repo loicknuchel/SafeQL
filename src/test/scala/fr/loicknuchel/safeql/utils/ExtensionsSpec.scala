@@ -42,7 +42,7 @@ class ExtensionsSpec extends BaseSpec {
         an[Exception] should be thrownBy IO.raiseError(e).recoverWith { case _ => IO.raiseError(e) }.unsafeRunSync()
       }
     }
-    describe("RichIterableOnce") {
+    describe("RichTraversableOnce") {
       it("should transform to NonEmptyList") {
         Seq().toNel shouldBe a[Left[_, _]]
         Seq(1).toNel shouldBe Right(NonEmptyList.of(1))
@@ -53,14 +53,14 @@ class ExtensionsSpec extends BaseSpec {
         Seq("1", "2", "3").mk(_ + "-" + _) shouldBe Some("1-2-3")
       }
     }
-    describe("RichIterableOnceTry") {
+    describe("RichTraversableOnceTry") {
       it("should reverse monads") {
         Seq(Try(1), Try(2), Try(3)).sequence shouldBe Success(Seq(1, 2, 3))
         Seq(Try(1), Try(throw e), Try(3)).sequence shouldBe Failure(e)
         Seq(Try(1), Try(throw e), Try(throw e2)).sequence shouldBe Failure(MultiException(NonEmptyList.of(e, e2))) // should keep all exceptions
       }
     }
-    describe("RichIterableOnceFragment") {
+    describe("RichTraversableOnceFragment") {
       it("should join fragments") {
         Seq.empty[Fragment].mkFragment("-").query.sql shouldBe ""
         Seq(fr0"1").mkFragment("-").query.sql shouldBe "1"

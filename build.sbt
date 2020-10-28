@@ -17,4 +17,5 @@ libraryDependencies ++= Seq(
 
 // option added by addSbtPlugin("io.github.davidgregory084" % "sbt-tpolecat" % "0.1.14")
 // but as I have an unused import in generated file, I can't remove it and I can't ignore one package for this option :(
-scalacOptions --= Seq("-Wunused:imports")
+scalacOptions --= Seq("-Wunused:imports", "-Ywarn-unused:imports") // 2.13 and 2.12 options
+scalacOptions --= Seq("-Xfatal-warnings") // removed as Extensions classes have warnings due to cross compile, need to find a way to handle them

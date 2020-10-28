@@ -7,7 +7,8 @@ import doobie.syntax.string._
 import doobie.util.fragment.Fragment
 import doobie.util.fragment.Fragment.const0
 
-import scala.collection.{BuildFrom, mutable}
+import scala.collection.generic.CanBuildFrom
+import scala.collection.mutable
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
@@ -38,23 +39,23 @@ object Extensions {
     def recoverWith[B](pf: PartialFunction[Throwable, IO[A]]): IO[A] = implicitly[MonadError[IO, Throwable]].recoverWith(in)(pf)
   }
 
-  implicit class RichIterableOnce[A, M[X] <: IterableOnce[X]](val in: M[A]) extends AnyVal {
+  implicit class RichTraversableOnce[A, M[X] <: TraversableOnce[X]](val in: M[A]) extends AnyVal {
     def toNel: Either[IllegalArgumentException, NonEmptyList[A]] = {
-      val list = in.iterator.to(List)
+      val list = in.toList
       NonEmptyList.fromList(list).toEither(new IllegalArgumentException("List should not be empty"))
     }
 
-    def mk(concat: (A, A) => A): Option[A] = in.iterator.to(List) match {
+    def mk(concat: (A, A) => A): Option[A] = in.toList match {
       case Nil => None
       case head :: Nil => Some(head)
       case head :: tail => Some(tail.foldLeft(head)(concat))
     }
   }
 
-  implicit class RichIterableOnceTry[A, M[X] <: IterableOnce[X]](val in: M[Try[A]]) extends AnyVal {
-    def sequence(implicit cbf: BuildFrom[M[Try[A]], A, M[A]]): Try[M[A]] = {
-      val init = Try(cbf.newBuilder(in) -> List.empty[Throwable])
-      in.iterator.foldLeft(init) { (acc, cur) =>
+  implicit class RichTraversableOnceTry[A, M[X] <: TraversableOnce[X]](val in: M[Try[A]]) extends AnyVal {
+    def sequence(implicit cbf: CanBuildFrom[M[Try[A]], A, M[A]]): Try[M[A]] = {
+      val init = Try(cbf.apply(in) -> List.empty[Throwable])
+      in.foldLeft(init) { (acc, cur) =>
         acc.flatMap { case (results, errors) =>
           cur.map { result => (results += result, errors) }
             .recover { case NonFatal(error) => (results, error +: errors) }
@@ -63,8 +64,8 @@ object Extensions {
     }
   }
 
-  implicit class RichIterableOnceFragment[M[X] <: IterableOnce[X]](val in: M[Fragment]) extends AnyVal {
-    def mkFragment(sep: Fragment): Fragment = in.iterator.to(List) match {
+  implicit class RichTraversableOnceFragment[M[X] <: TraversableOnce[X]](val in: M[Fragment]) extends AnyVal {
+    def mkFragment(sep: Fragment): Fragment = in.toList match {
       case Nil => fr0""
       case head :: Nil => head
       case head :: tail => tail.foldLeft(head)(_ ++ sep ++ _)
@@ -79,14 +80,14 @@ object Extensions {
     def mkFragment(sep: String): Fragment = mkFragment(const0(sep))
   }
 
-  private def sequenceResult[A, M[X] <: IterableOnce[X]](in: (mutable.Builder[A, M[A]], List[Throwable])): Try[M[A]] = {
+  private def sequenceResult[A, M[X] <: TraversableOnce[X]](in: (mutable.Builder[A, M[A]], List[Throwable])): Try[M[A]] = {
     sequenceResultEither(in).left.map(_.flatMap {
       case MultiException(errs) => errs
       case e => NonEmptyList.of(e)
     }).asTry(errs => if (errs.length == 1) errs.head else MultiException(errs))
   }
 
-  private def sequenceResultEither[E, A, M[X] <: IterableOnce[X]](in: (mutable.Builder[A, M[A]], List[E])): Either[NonEmptyList[E], M[A]] = {
+  private def sequenceResultEither[E, A, M[X] <: TraversableOnce[X]](in: (mutable.Builder[A, M[A]], List[E])): Either[NonEmptyList[E], M[A]] = {
     val (results, errors) = in
     errors.reverse.toNel.swap.map(_ => results.result())
   }
