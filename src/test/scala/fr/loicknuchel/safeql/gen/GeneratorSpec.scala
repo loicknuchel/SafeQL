@@ -7,10 +7,13 @@ import fr.loicknuchel.safeql.gen.writer.{ScalaWriter, Writer}
 import fr.loicknuchel.safeql.testingutils.SqlSpec
 
 class GeneratorSpec extends SqlSpec {
-  private val reader = new H2Reader(
+  private val reader = H2Reader(
+    url = dbUrl,
+    user = dbUser,
+    pass = dbPass,
     schema = Some("PUBLIC"),
     excludes = Some(".*flyway.*"))
-  private val writer = new ScalaWriter(
+  private val writer = ScalaWriter(
     directory = "src/test/scala",
     packageName = "fr.loicknuchel.safeql.testingutils.database",
     identifierStrategy = Writer.IdentifierStrategy.upperCase,
@@ -28,11 +31,11 @@ class GeneratorSpec extends SqlSpec {
 
   describe("Generator") {
     ignore("should generate database tables") {
-      Generator.generate(xa, reader, writer).unsafeRunSync()
+      Generator.generate(reader, writer).unsafeRunSync()
     }
     it("should generate same files as before") {
       val existingFiles = writer.readFiles().get
-      val database = reader.read(xa).unsafeRunSync()
+      val database = reader.read().unsafeRunSync()
       val newFiles = writer.generateFiles(database)
       newFiles.size shouldBe existingFiles.size
       newFiles.map { case (path, content) =>

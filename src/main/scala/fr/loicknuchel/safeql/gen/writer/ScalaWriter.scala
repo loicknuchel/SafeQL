@@ -8,10 +8,10 @@ import fr.loicknuchel.safeql.gen.writer.ScalaWriter.{DatabaseConfig, TableConfig
 import fr.loicknuchel.safeql.gen.writer.Writer.IdentifierStrategy
 import fr.loicknuchel.safeql.utils.StringUtils
 
-class ScalaWriter(directory: String = "src/main/scala",
-                  packageName: String = "safeql",
-                  identifierStrategy: IdentifierStrategy = Writer.IdentifierStrategy.upperCase,
-                  config: DatabaseConfig = DatabaseConfig()) extends Writer {
+class ScalaWriter(directory: String,
+                  packageName: String,
+                  identifierStrategy: IdentifierStrategy,
+                  config: DatabaseConfig) extends Writer {
   require(config.getConfigErrors.isEmpty, s"DatabaseConfig has some errors :${config.getConfigErrors.map("\n - " + _).mkString}")
   require(StringUtils.isScalaPackage(packageName), s"'$packageName' is an invalid scala package name")
 
@@ -164,6 +164,11 @@ class ScalaWriter(directory: String = "src/main/scala",
 }
 
 object ScalaWriter {
+  def apply(directory: String = "src/main/scala",
+            packageName: String = "safeql",
+            identifierStrategy: IdentifierStrategy = Writer.IdentifierStrategy.upperCase,
+            config: DatabaseConfig = DatabaseConfig()): ScalaWriter =
+    new ScalaWriter(directory, packageName, identifierStrategy, config)
 
   case class DatabaseConfig(scaladoc: Option[Table] => Option[String] = _ => None, // allow to add some scaladoc at the beginning of the files
                             imports: List[String] = List(), // imports to add on top of all Table files (for custom types for example)

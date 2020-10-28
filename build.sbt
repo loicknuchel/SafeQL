@@ -1,6 +1,6 @@
 name := "SafeQL"
 
-version := "0.1"
+version := "0.1.0"
 
 scalaVersion := "2.13.3" // 2.12.12 & 2.11.12
 

@@ -1,21 +1,16 @@
 package fr.loicknuchel.safeql.gen.reader
 
-import cats.effect.{ContextShift, IO}
 import doobie.syntax.connectionio._
 import doobie.syntax.string._
-import doobie.util.transactor.Transactor
 import fr.loicknuchel.safeql.gen.Database
 import fr.loicknuchel.safeql.gen.Database.FieldRef
 import fr.loicknuchel.safeql.gen.reader.H2Reader.{Column, Constraint, CrossReference, Table}
 import fr.loicknuchel.safeql.testingutils.BaseSpec
 import org.scalatest.BeforeAndAfterAll
 
-import scala.concurrent.ExecutionContext
-
 class H2ReaderSpec extends BaseSpec with BeforeAndAfterAll {
-  private implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  private val xa: doobie.Transactor[IO] = Transactor.fromDriverManager[IO](driver = "org.h2.Driver", url = "jdbc:h2:mem:reader_db;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1", user = "", pass = "")
-  private val reader = new H2Reader(schema = Some("PUBLIC"))
+  private val reader = H2Reader("jdbc:h2:mem:reader_db;MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1", schema = Some("PUBLIC"))
+  private val xa = reader.getTransactor
 
   override def beforeAll(): Unit = {
     sql"CREATE TABLE users (id INT NOT NULL PRIMARY KEY, name VARCHAR(50))".update.run.transact(xa).unsafeRunSync()
@@ -25,7 +20,7 @@ class H2ReaderSpec extends BaseSpec with BeforeAndAfterAll {
 
   describe("H2Reader") {
     it("should read the database schema") {
-      reader.read(xa).unsafeRunSync() shouldBe Database(schemas = List(Database.Schema("PUBLIC", tables = List(
+      reader.read().unsafeRunSync() shouldBe Database(schemas = List(Database.Schema("PUBLIC", tables = List(
         Database.Table("PUBLIC", "posts", fields = List(
           Database.Field("PUBLIC", "posts", "id", 4, "INTEGER", "INT NOT NULL", nullable = false, 1, None, None),
           Database.Field("PUBLIC", "posts", "title", 12, "VARCHAR", "VARCHAR(50)", nullable = true, 2, None, None),
@@ -37,7 +32,7 @@ class H2ReaderSpec extends BaseSpec with BeforeAndAfterAll {
         ))))))
     }
     it("should exclude fields, tables and schemas using a regex") {
-      new H2Reader(schema = Some("PUBLIC"), excludes = Some("id|users")).read(xa).unsafeRunSync() shouldBe Database(schemas = List(Database.Schema("PUBLIC", tables = List(
+      reader.excludes("id|users").read().unsafeRunSync() shouldBe Database(schemas = List(Database.Schema("PUBLIC", tables = List(
         Database.Table("PUBLIC", "posts", fields = List(
           Database.Field("PUBLIC", "posts", "title", 12, "VARCHAR", "VARCHAR(50)", nullable = true, 2, None, None),
           Database.Field("PUBLIC", "posts", "author", 4, "INTEGER", "INT NOT NULL", nullable = false, 3, None, Some(FieldRef("PUBLIC", "users", "id")))

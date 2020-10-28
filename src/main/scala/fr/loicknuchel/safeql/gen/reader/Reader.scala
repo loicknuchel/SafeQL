@@ -4,5 +4,5 @@ import cats.effect.IO
 import fr.loicknuchel.safeql.gen.Database
 
 trait Reader {
-  def read(xa: doobie.Transactor[IO]): IO[Database]
+  def read(): IO[Database]
 }

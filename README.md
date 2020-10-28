@@ -1,16 +1,39 @@
 # SafeQL
 
-A Scala DSL to build type-safe SQL queries on top of Doobie.
+A Scala DSL to build typesafe SQL queries on top of Doobie.
 
-## Impatient Quickstart
+## Quick Start
 
-To use SafeQL in an existing SBT project with Scala 2.11 or a later version, add the following dependency to your `build.sbt`:
+Add the dependency to your `build.sbt` (Scala 2.11 or later):
 
 ```scala
 libraryDependencies += "fr.loicknuchel" %% "safeql" % "<version>"
 ```
 
-- generate tables from db
-    - specify SQL files or db connection
-    - specify local project and package (default: `src/main/scala` folder and `safeql` package)
-- use tables to query the db
+Then you can generate table classes from your db, for example with Flyway but you can also use a real database connection, or a list of SQL files:
+
+```scala
+import fr.loicknuchel.safeql.gen.Generator
+import fr.loicknuchel.safeql.gen.writer.ScalaWriter
+
+object FlywaySample {
+  def main(args: Array[String]): Unit = {
+    Generator
+      .flyway("classpath:sql_migrations")
+      .writer(ScalaWriter(packageName = "com.company.db"))
+      .generate().unsafeRunSync()
+  }
+}
+```
+
+Once you generated the tables, you have a typesafe model of your database. Use it to perform queries:
+
+```scala
+USERS.insert.values(User.Id(4), "Lou", "lou@mail.com").run(xa).unsafeRunSync()
+USERS.update.set(_.NAME, "LouLou").set(_.EMAIL, "loulou@mail.com").where(_.ID is User.Id(4)).run(xa).unsafeRunSync()
+USERS.delete.where(_.ID is User.Id(4)).run(xa).unsafeRunSync()
+
+val user: Option[User] = USERS.select.where(_.ID is User.Id(1)).option[User].run(xa).unsafeRunSync()
+val users: List[User] = USERS.select.all[User].run(xa).unsafeRunSync()
+val postsWithUsers: List[(Post, User)] = POSTS.joinOn(_.AUTHOR).select.all[(Post, User)].run(xa).unsafeRunSync()
+```

@@ -15,7 +15,7 @@ class ScalaWriterSpec extends BaseSpec {
     Database.Field("PUBLIC", "posts", "title", 12, "VARCHAR", "VARCHAR(50)", nullable = true, 2, None, None),
     Database.Field("PUBLIC", "posts", "author", 4, "INTEGER", "INT NOT NULL", nullable = false, 3, None, Some(FieldRef("PUBLIC", "users", "id")))))
   private val db = Database(schemas = List(Database.Schema("PUBLIC", tables = List(posts, users))))
-  private val writer = new ScalaWriter()
+  private val writer = ScalaWriter()
 
   describe("ScalaWriter") {
     it("should build needed paths") {

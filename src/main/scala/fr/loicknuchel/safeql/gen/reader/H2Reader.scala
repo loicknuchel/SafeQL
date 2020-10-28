@@ -1,17 +1,28 @@
 package fr.loicknuchel.safeql.gen.reader
 
-import cats.effect.IO
+import cats.effect.{ContextShift, IO}
 import doobie.syntax.connectionio._
 import doobie.syntax.string._
+import doobie.util.transactor.Transactor
 import fr.loicknuchel.safeql.gen.Database
 import fr.loicknuchel.safeql.gen.reader.H2Reader._
 
-class H2Reader(schema: Option[String] = None,
-               excludes: Option[String] = None) extends Reader {
-  override def read(xa: doobie.Transactor[IO]): IO[Database] = for {
+import scala.concurrent.ExecutionContext
+
+class H2Reader(val url: String,
+               val user: String,
+               val pass: String,
+               schema: Option[String],
+               excludes: Option[String]) extends Reader {
+  val driver: String = "org.h2.Driver"
+
+  override def read(): IO[Database] = for {
+    xa <- IO.pure(getTransactor)
     columns <- readColumns(xa)
     crossReferences <- readCrossReferences(xa)
   } yield buildDatabase(columns, crossReferences)
+
+  def excludes(regex: String): H2Reader = new H2Reader(url, user, pass, schema, excludes = Some(regex))
 
   protected def buildDatabase(columns: List[Column], crossReferences: List[CrossReference]): Database = {
     val refs = crossReferences.map(r => (Database.FieldRef(r.FKTABLE_SCHEMA, r.FKTABLE_NAME, r.FKCOLUMN_NAME), Database.FieldRef(r.PKTABLE_SCHEMA, r.PKTABLE_NAME, r.PKCOLUMN_NAME))).toMap
@@ -23,6 +34,11 @@ class H2Reader(schema: Option[String] = None,
         }.filterNot(f => excludes.exists(e => f.name.matches(e))))
       }.filterNot(t => excludes.exists(e => t.name.matches(e))))
     }.filterNot(s => excludes.exists(e => s.name.matches(e))))
+  }
+
+  protected[reader] def getTransactor: doobie.Transactor[IO] = {
+    implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+    Transactor.fromDriverManager[IO](driver, url, user, pass)
   }
 
   protected[reader] def readColumns(xa: doobie.Transactor[IO]): IO[List[Column]] =
@@ -43,6 +59,8 @@ class H2Reader(schema: Option[String] = None,
 }
 
 object H2Reader {
+  def apply(url: String, user: String = "", pass: String = "", schema: Option[String] = None, excludes: Option[String] = None): H2Reader =
+    new H2Reader(url, user, pass, schema, excludes)
 
   case class Column(TABLE_CATALOG: String, // ex: "4b0c3610-0d2e-493c-9895-9d004fa7bab9"
                     TABLE_SCHEMA: String, // ex: "INFORMATION_SCHEMA", "PUBLIC"
