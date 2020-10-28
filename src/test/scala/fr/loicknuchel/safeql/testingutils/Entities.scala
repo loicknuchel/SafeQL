@@ -43,9 +43,9 @@ object Entities {
 
     case class Id(value: Int) extends AnyVal
 
-    val newYear: Post = Post(Id(1), "Happy new year", "The awful year", Instant.ofEpochSecond(1577833140), User.Id(1), None)
-    val first2020: Post = Post(Id(2), "First 2020 post", "bla bla", Instant.ofEpochSecond(1577876400), User.Id(1), None)
-    val sqlQueries: Post = Post(Id(3), "SQL Queries", "Using jOOQ and Doobie", Instant.ofEpochSecond(1595082720), User.Id(2), Some(1))
+    val newYear: Post = Post(Id(1), "Happy new year", "The awful year", Instant.parse("2019-12-31T23:59:00Z"), User.Id(1), None)
+    val first2020: Post = Post(Id(2), "First 2020 post", "bla bla", Instant.parse("2020-01-01T12:00:00Z"), User.Id(1), None)
+    val sqlQueries: Post = Post(Id(3), "SQL Queries", "Using jOOQ and Doobie", Instant.parse("2020-07-18T16:32:00Z"), User.Id(2), Some(1))
 
     val all = List(newYear, first2020, sqlQueries)
   }

@@ -1,4 +1,4 @@
-# SafeQL
+# SafeQL [![Build Status](https://travis-ci.com/loicknuchel/SafeQL.svg?branch=master)](https://travis-ci.com/loicknuchel/SafeQL)
 
 A Scala DSL to build typesafe SQL queries on top of Doobie.
 

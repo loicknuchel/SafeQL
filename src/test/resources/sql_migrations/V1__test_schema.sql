@@ -31,9 +31,9 @@ CREATE TABLE posts
 );
 
 INSERT INTO posts (id, title, text, date, author, category)
-VALUES (1, 'Happy new year', 'The awful year', TIMESTAMP '2019-12-31 23:59:00', 1, null),
-       (2, 'First 2020 post', 'bla bla', TIMESTAMP '2020-01-01 12:00:00', 1, null),
-       (3, 'SQL Queries', 'Using jOOQ and Doobie', TIMESTAMP '2020-07-18 16:32:00', 2, 1);
+VALUES (1, 'Happy new year', 'The awful year', TIMESTAMP '2019-12-31 23:59:00Z', 1, null),
+       (2, 'First 2020 post', 'bla bla', TIMESTAMP '2020-01-01 12:00:00Z', 1, null),
+       (3, 'SQL Queries', 'Using jOOQ and Doobie', TIMESTAMP '2020-07-18 16:32:00Z', 2, 1);
 
 CREATE TABLE featured
 (
