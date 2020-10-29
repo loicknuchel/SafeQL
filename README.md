@@ -1,10 +1,17 @@
-# SafeQL [![Build Status](https://travis-ci.com/loicknuchel/SafeQL.svg?branch=master)](https://travis-ci.com/loicknuchel/SafeQL)
+# SafeQL [![travis-badge][]][travis] [![release-badge][]][release] [![maven-badge][]][maven]
+
+[travis]:                                 https://travis-ci.com/loicknuchel/SafeQL
+[travis-badge]:                           https://travis-ci.com/loicknuchel/SafeQL.svg?branch=master
+[release]:                                   https://github.com/loicknuchel/SafeQL/releases/latest
+[release-badge]:          https://img.shields.io/github/release/loicknuchel/SafeQL.svg
+[maven]:       https://maven-badges.herokuapp.com/maven-central/loicknuchel/SafeQL_2.13
+[maven-badge]: https://maven-badges.herokuapp.com/maven-central/loicknuchel/SafeQL_2.13/badge.svg
 
 A Scala DSL to build typesafe SQL queries on top of Doobie.
 
 ## Quick Start
 
-Add the dependency to your `build.sbt` (Scala 2.11 or later):
+Add the dependency to your `build.sbt` (Scala 2.12 or later):
 
 ```scala
 libraryDependencies += "fr.loicknuchel" %% "safeql" % "<version>"

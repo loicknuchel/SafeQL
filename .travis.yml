@@ -1,12 +1,42 @@
 language: scala
-scala:
-  - 2.12.12
-  - 2.13.3
 
 jdk:
   - openjdk8
 
+before_install:
+  - git fetch --tags
+
+stages:
+  - name: test
+  - name: release
+    if: ((branch = master AND type = push) OR (tag IS present)) AND NOT fork
+
+jobs:
+  include:
+    # stage="test" if no stage is specified
+    - name: test jdk11 2.13
+      scala: [2.13.3]
+      jdk: openjdk11
+      script: sbt ++$TRAVIS_SCALA_VERSION test
+    - name: test jdk8 2.13
+      scala: [2.13.3]
+      jdk: openjdk8
+      script: sbt ++$TRAVIS_SCALA_VERSION test
+    - name: test jdk11 2.12
+      scala: [2.12.12]
+      jdk: openjdk11
+      script: sbt ++$TRAVIS_SCALA_VERSION test
+    - name: test jdk8 2.12
+      scala: [2.12.12]
+      jdk: openjdk8
+      script: sbt ++$TRAVIS_SCALA_VERSION test
+    # run ci-release only if previous stages passed
+    - stage: release
+      name: release
+      jdk: openjdk8
+      script: sbt ci-release
+
 cache:
   directories:
     - $HOME/.ivy2/cache
-    - $HOME/.sbt/boot/
+    - $HOME/.sbt

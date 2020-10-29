@@ -40,10 +40,8 @@ object Extensions {
   }
 
   implicit class RichTraversableOnce[A, M[X] <: TraversableOnce[X]](val in: M[A]) extends AnyVal {
-    def toNel: Either[IllegalArgumentException, NonEmptyList[A]] = {
-      val list = in.toList
-      NonEmptyList.fromList(list).toEither(new IllegalArgumentException("List should not be empty"))
-    }
+    def toNel: Either[IllegalArgumentException, NonEmptyList[A]] =
+      NonEmptyList.fromList(in.toList).toEither(new IllegalArgumentException("List should not be empty"))
 
     def mk(concat: (A, A) => A): Option[A] = in.toList match {
       case Nil => None

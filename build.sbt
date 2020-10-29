@@ -1,11 +1,17 @@
 name := "SafeQL"
-version := "0.1.0"
+// version := "0.1.0-SNAPSHOT" set by 'sbt-dynver' plugin, brought in by 'sbt-ci-release' plugin
 
 // see https://www.scala-sbt.org/1.x/docs/Cross-Build.html
 // can't build for 2.11 as doobie is no longer available for scala 2.11
-val supportedScalaVersions = List("2.13.3", "2.12.12")
-scalaVersion := supportedScalaVersions.head
-crossScalaVersions := supportedScalaVersions
+scalaVersion := "2.12.12"
+crossScalaVersions := List("2.12.12", "2.13.3")
+
+// publishing informations
+organization := "fr.loicknuchel"
+homepage := Some(url("https://github.com/loicknuchel/SafeQL"))
+licenses += ("MIT", url("https://opensource.org/licenses/mit-license.php"))
+developers := List(Developer("loicknuchel", "Loïc Knuchel", "loicknuchel@gmail.com", url("https://loicknuchel.fr")))
+scmInfo := Some(ScmInfo(url("https://github.com/loicknuchel/SafeQL"), "git@github.com:loicknuchel/SafeQL.git"))
 
 libraryDependencies ++= Seq(
   "org.tpolecat" %% "doobie-core" % "0.9.2",
