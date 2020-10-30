@@ -1,11 +1,15 @@
-# SafeQL [![travis-badge][]][travis] [![release-badge][]][release] [![maven-badge][]][maven]
+# SafeQL [![travis-badge][]][travis] [![codecov-badge][]][codecov] [![release-badge][]][release] [![maven-badge][]][maven] [![license-badge][]][license]
 
-[travis]:                                 https://travis-ci.com/loicknuchel/SafeQL
-[travis-badge]:                           https://travis-ci.com/loicknuchel/SafeQL.svg?branch=master
-[release]:                                   https://github.com/loicknuchel/SafeQL/releases/latest
-[release-badge]:          https://img.shields.io/github/release/loicknuchel/SafeQL.svg
-[maven]:       https://maven-badges.herokuapp.com/maven-central/loicknuchel/SafeQL_2.13
-[maven-badge]: https://maven-badges.herokuapp.com/maven-central/loicknuchel/SafeQL_2.13/badge.svg
+[travis]:                          https://travis-ci.com/loicknuchel/SafeQL
+[travis-badge]:                    https://travis-ci.com/loicknuchel/SafeQL.svg?branch=master
+[codecov]:                      http://codecov.io/github/loicknuchel/SafeQL?branch=master
+[codecov-badge]:                http://codecov.io/github/loicknuchel/SafeQL/coverage.svg?branch=master
+[release]:                            https://github.com/loicknuchel/SafeQL/releases/latest
+[release-badge]:   https://img.shields.io/github/release/loicknuchel/SafeQL.svg
+[maven]:            https://search.maven.org/artifact/fr.loicknuchel/safeql_2.13
+[maven-badge]: https://img.shields.io/maven-central/v/fr.loicknuchel/safeql_2.13
+[license]:                            https://github.com/loicknuchel/SafeQL/blob/master/LICENSE
+[license-badge]:   https://img.shields.io/github/license/loicknuchel/SafeQL
 
 A Scala DSL to build typesafe SQL queries on top of Doobie.
 
@@ -44,3 +48,10 @@ val user: Option[User] = USERS.select.where(_.ID is User.Id(1)).option[User].run
 val users: List[User] = USERS.select.all[User].run(xa).unsafeRunSync()
 val postsWithUsers: List[(Post, User)] = POSTS.joinOn(_.AUTHOR).select.all[(Post, User)].run(xa).unsafeRunSync()
 ```
+
+## Development
+
+## Releasing
+
+Every commit on master is [released as SNAPSHOT](https://oss.sonatype.org/#nexus-search;quick~fr.loicknuchel) so you can use it immediately thanks to [sbt-ci-release](https://github.com/olafurpg/sbt-ci-release) plugin.
+To push a stable release, push a tag version starting with 'v' (ex: `v0.1.0`).
