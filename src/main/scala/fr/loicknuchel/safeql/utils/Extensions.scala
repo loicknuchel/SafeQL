@@ -6,6 +6,7 @@ import cats.effect.IO
 import doobie.syntax.string._
 import doobie.util.fragment.Fragment
 import doobie.util.fragment.Fragment.const0
+import fr.loicknuchel.safeql.models.MultiException
 
 import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable

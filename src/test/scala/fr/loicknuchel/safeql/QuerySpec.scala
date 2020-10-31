@@ -6,6 +6,7 @@ import cats.data.NonEmptyList
 import doobie.util.Put
 import doobie.util.meta.Meta
 import fr.loicknuchel.safeql.Query.Inner._
+import fr.loicknuchel.safeql.models.Page
 import fr.loicknuchel.safeql.testingutils.BaseSpec
 import fr.loicknuchel.safeql.testingutils.Entities.{Category, User}
 import fr.loicknuchel.safeql.testingutils.database.Tables.{CATEGORIES, POSTS, USERS}

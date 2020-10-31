@@ -12,6 +12,7 @@ import doobie.util.{Put, Read}
 import fr.loicknuchel.safeql.Field.Order
 import fr.loicknuchel.safeql.Query.Inner._
 import fr.loicknuchel.safeql.Table.Sort
+import fr.loicknuchel.safeql.models._
 import fr.loicknuchel.safeql.utils.Extensions._
 
 import scala.util.control.NonFatal

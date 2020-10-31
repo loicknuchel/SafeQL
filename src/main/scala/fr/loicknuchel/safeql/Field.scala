@@ -132,35 +132,18 @@ object SqlField {
     new SqlField(table, name, JdbcInfo(nullable, index, jdbcType, jdbcDeclaration), None)
 
   def apply[A, T <: Table.SqlTable, T2 <: Table.SqlTable](table: T, name: String, jdbcDeclaration: String, jdbcType: JdbcType, nullable: Boolean, index: Int, references: SqlField[A, T2]): SqlFieldRef[A, T, T2] =
-    new SqlFieldRef(table, name, JdbcInfo(nullable, index, jdbcType, jdbcDeclaration), None, references)
+    SqlFieldRef(table, name, JdbcInfo(nullable, index, jdbcType, jdbcDeclaration), None, references)
 
   case class JdbcInfo(nullable: Boolean, index: Int, jdbcType: JdbcType, jdbcDeclaration: String)
 
 }
 
-class SqlFieldRef[A, T <: Table.SqlTable, T2 <: Table.SqlTable](override val table: T,
-                                                                override val name: String,
-                                                                override val info: SqlField.JdbcInfo,
-                                                                override val alias: Option[String],
-                                                                val references: SqlField[A, T2]) extends SqlField[A, T](table, name, info, alias) {
+case class SqlFieldRef[A, T <: Table.SqlTable, T2 <: Table.SqlTable](override val table: T,
+                                                                     override val name: String,
+                                                                     override val info: SqlField.JdbcInfo,
+                                                                     override val alias: Option[String],
+                                                                     references: SqlField[A, T2]) extends SqlField[A, T](table, name, info, alias) {
   override def toString: String = s"SqlFieldRef(${table.getName}.$name, ${references.table.getName}.${references.name})"
-
-  override def canEqual(other: Any): Boolean = other.isInstanceOf[SqlFieldRef[_, _, _]]
-
-  override def equals(other: Any): Boolean = other match {
-    case that: SqlFieldRef[_, _, _] =>
-      super.equals(that) &&
-        (that canEqual this) &&
-        table == that.table &&
-        name == that.name &&
-        references == that.references
-    case _ => false
-  }
-
-  override def hashCode(): Int = {
-    val state: List[Any] = List(super.hashCode(), table, name, references)
-    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
-  }
 }
 
 case class TableField[A](name: String, table: Option[String] = None, alias: Option[String] = None) extends Field[A] {

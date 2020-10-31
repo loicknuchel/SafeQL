@@ -5,9 +5,9 @@ import java.util.UUID
 import cats.effect.IO
 import doobie.Update0
 import doobie.syntax.connectionio._
-import fr.loicknuchel.safeql.FailedScript
 import fr.loicknuchel.safeql.gen.reader.{H2Reader, Reader}
 import fr.loicknuchel.safeql.gen.writer.Writer
+import fr.loicknuchel.safeql.models.FailedScript
 import fr.loicknuchel.safeql.utils.Extensions._
 import fr.loicknuchel.safeql.utils.FileUtils
 import org.flywaydb.core.Flyway

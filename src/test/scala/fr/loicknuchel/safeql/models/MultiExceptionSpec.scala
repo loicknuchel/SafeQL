@@ -1,4 +1,4 @@
-package fr.loicknuchel.safeql.utils
+package fr.loicknuchel.safeql.models
 
 import fr.loicknuchel.safeql.testingutils.BaseSpec
 

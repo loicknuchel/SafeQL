@@ -4,6 +4,7 @@ import cats.data.NonEmptyList
 import cats.effect.IO
 import doobie.syntax.string._
 import doobie.util.fragment.Fragment
+import fr.loicknuchel.safeql.models.MultiException
 import fr.loicknuchel.safeql.testingutils.BaseSpec
 import fr.loicknuchel.safeql.utils.Extensions._
 

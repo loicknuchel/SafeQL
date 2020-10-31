@@ -1,8 +1,9 @@
-package fr.loicknuchel.safeql
+package fr.loicknuchel.safeql.models
 
 import cats.data.NonEmptyList
 import doobie.util.Read
 import doobie.util.fragment.Fragment
+import fr.loicknuchel.safeql.{Cond, Field, SqlField, Table}
 
 object Exceptions {
   def check[A, T <: Table](fields: List[Field[_]], table: T, value: => A): A =
@@ -37,3 +38,17 @@ case class FailedScript(script: String, cause: Throwable)
 
 case class NotImplementedJoin[T <: Table, T2 <: Table](t: T, t2: T2)
   extends Exception(s"Join between ${t.sql} and ${t2.sql} is not implemented")
+
+case class MultiException(errs: NonEmptyList[Throwable]) extends RuntimeException {
+  override def getMessage: String = errs.toList.map(e => s"\n  - ${e.getMessage}").mkString
+
+  override def getLocalizedMessage: String = errs.toList.map(e => s"\n  - ${e.getLocalizedMessage}").mkString
+
+  override def getStackTrace: Array[StackTraceElement] = errs.head.getStackTrace
+
+  override def getCause: Throwable = errs.head.getCause
+}
+
+object MultiException {
+  def apply(err: Throwable, others: Throwable*): MultiException = new MultiException(NonEmptyList(err, others.toList))
+}

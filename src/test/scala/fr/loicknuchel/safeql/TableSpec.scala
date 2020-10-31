@@ -1,5 +1,6 @@
 package fr.loicknuchel.safeql
 
+import fr.loicknuchel.safeql.models.NotImplementedJoin
 import fr.loicknuchel.safeql.testingutils.BaseSpec
 import fr.loicknuchel.safeql.testingutils.database.Tables.{CATEGORIES, FEATURED, POSTS, USERS}
 

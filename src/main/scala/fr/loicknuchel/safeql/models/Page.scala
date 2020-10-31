@@ -1,9 +1,8 @@
-package fr.loicknuchel.safeql
+package fr.loicknuchel.safeql.models
 
 import cats.data.NonEmptyList
-import fr.loicknuchel.safeql.Page.Params
 
-case class Page[A](items: List[A], params: Params, total: Long)
+case class Page[A](items: List[A], params: Page.Params, total: Long)
 
 object Page {
 

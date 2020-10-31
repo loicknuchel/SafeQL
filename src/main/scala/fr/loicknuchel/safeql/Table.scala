@@ -11,6 +11,7 @@ import fr.loicknuchel.safeql.Query.Inner._
 import fr.loicknuchel.safeql.Query.{Delete, Insert, Select, Update}
 import fr.loicknuchel.safeql.Table.Inner._
 import fr.loicknuchel.safeql.Table.{Join, JoinTable, Sort}
+import fr.loicknuchel.safeql.models.{ConflictingTableFields, Exceptions, NotImplementedJoin, UnknownTableFields}
 
 import scala.language.dynamics
 
