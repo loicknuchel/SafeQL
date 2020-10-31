@@ -8,18 +8,24 @@ import fr.loicknuchel.safeql.gen.writer.ScalaWriter.{DatabaseConfig, TableConfig
 import fr.loicknuchel.safeql.gen.writer.Writer.IdentifierStrategy
 import fr.loicknuchel.safeql.utils.StringUtils
 
-class ScalaWriter(directory: String,
-                  packageName: String,
-                  identifierStrategy: IdentifierStrategy,
-                  config: DatabaseConfig) extends Writer {
+class ScalaWriter(val directory: String,
+                  val packageName: String,
+                  val identifierStrategy: IdentifierStrategy,
+                  val config: DatabaseConfig) extends Writer {
   require(config.getConfigErrors.isEmpty, s"DatabaseConfig has some errors :${config.getConfigErrors.map("\n - " + _).mkString}")
   require(StringUtils.isScalaPackage(packageName), s"'$packageName' is an invalid scala package name")
 
   def directory(dir: String): ScalaWriter = new ScalaWriter(dir, packageName, identifierStrategy, config)
 
-  override protected def getDatabaseErrors(db: Database): List[String] = config.getDatabaseErrors(db)
+  def packageName(pkg: String): ScalaWriter = new ScalaWriter(directory, pkg, identifierStrategy, config)
 
-  override protected[gen] def rootFolderPath: String = directory + "/" + packageName.replaceAll("\\.", "/")
+  def identifierStrategy(idf: IdentifierStrategy): ScalaWriter = new ScalaWriter(directory, packageName, idf, config)
+
+  def config(conf: DatabaseConfig): ScalaWriter = new ScalaWriter(directory, packageName, identifierStrategy, conf)
+
+  override def getDatabaseErrors(db: Database): List[String] = config.getDatabaseErrors(db)
+
+  override def rootFolderPath: String = directory + "/" + packageName.replaceAll("\\.", "/")
 
   override protected[writer] def tableFilePath(t: Table): String = tablesFolderPath + "/" + idf(t.name) + ".scala"
 

@@ -2,7 +2,7 @@ package fr.loicknuchel.safeql.utils
 
 import java.text.Normalizer
 
-object StringUtils {
+private[safeql] object StringUtils {
   def removeDiacritics(str: String): String =
     Normalizer.normalize(str, Normalizer.Form.NFD)
       .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")

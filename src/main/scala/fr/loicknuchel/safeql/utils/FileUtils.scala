@@ -3,10 +3,12 @@ package fr.loicknuchel.safeql.utils
 import java.io.File
 import java.nio.file.{Files, Paths}
 
+import fr.loicknuchel.safeql.utils.Extensions._
+
 import scala.jdk.CollectionConverters._
 import scala.util.Try
 
-object FileUtils {
+private[safeql] object FileUtils {
   def parent(path: String): String =
     path.split("/").dropRight(1).mkString("/")
 
@@ -20,6 +22,13 @@ object FileUtils {
     }
 
     listDir(new File(path)).filter(_.isFile).map(_.getPath).sorted
+  }
+
+  // return a map for files with their relative path inside the directory and their content
+  def getDirContent(path: String): Try[Map[String, String]] = {
+    FileUtils.listFiles(path)
+      .flatMap(_.map(p => FileUtils.read(p).map(c => (p.stripPrefix(path + "/"), c))).sequence)
+      .map(_.toMap)
   }
 
   def read(path: String): Try[String] =

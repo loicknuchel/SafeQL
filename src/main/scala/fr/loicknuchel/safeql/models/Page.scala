@@ -28,6 +28,10 @@ object Page {
     def filters(f: Map[String, String]): Params = copy(filters = f)
 
     def filters(f: (String, String)*): Params = filters(f.toMap)
+
+    def withNullsFirst: Params = copy(nullsFirst = true)
+
+    def withNullsLast: Params = copy(nullsFirst = false)
   }
 
 }

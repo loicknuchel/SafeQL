@@ -93,4 +93,19 @@ object Generator {
     database <- reader.read()
     _ <- writer.write(database).toIO
   } yield ()
+
+  /**
+   * Allow to start with writer
+   */
+
+  def writer(writer: Writer) = new Builder(writer)
+
+  class Builder(writer: Writer) {
+    def flyway(flywayLocations: String*): FlywayGenerator = Generator.flyway(flywayLocations: _*).writer(writer)
+
+    def fromFiles(paths: List[String]): SQLFilesGenerator = Generator.fromFiles(paths).writer(writer)
+
+    def reader(reader: Reader): ReaderGenerator = Generator.reader(reader).writer(writer)
+  }
+
 }

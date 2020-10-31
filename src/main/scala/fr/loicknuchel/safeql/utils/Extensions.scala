@@ -13,7 +13,7 @@ import scala.collection.mutable
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
-object Extensions {
+private[safeql] object Extensions {
 
   implicit class RichOption[A](val in: Option[A]) extends AnyVal {
     def toEither[E](e: => E): Either[E, A] = in match {

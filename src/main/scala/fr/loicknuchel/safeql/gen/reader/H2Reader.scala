@@ -12,20 +12,28 @@ import scala.concurrent.ExecutionContext
 class H2Reader(val url: String,
                val user: String,
                val pass: String,
-               schema: Option[String],
-               excludes: Option[String]) extends Reader {
+               val schema: Option[String],
+               val excludes: Option[String]) extends Reader {
   val driver: String = "org.h2.Driver"
   protected[gen] lazy val xa: doobie.Transactor[IO] = {
     implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
     Transactor.fromDriverManager[IO](driver, url, user, pass)
   }
 
+  def url(u: String): H2Reader = new H2Reader(u, user, pass, schema, excludes)
+
+  def user(u: String): H2Reader = new H2Reader(url, u, pass, schema, excludes)
+
+  def pass(p: String): H2Reader = new H2Reader(url, user, p, schema, excludes)
+
+  def schema(s: String): H2Reader = new H2Reader(url, user, pass, schema = Some(s), excludes)
+
+  def excludes(regex: String): H2Reader = new H2Reader(url, user, pass, schema, excludes = Some(regex))
+
   override def read(): IO[Database] = for {
     columns <- readColumns(xa)
     crossReferences <- readCrossReferences(xa)
   } yield buildDatabase(columns, crossReferences)
-
-  def excludes(regex: String): H2Reader = new H2Reader(url, user, pass, schema, excludes = Some(regex))
 
   protected def buildDatabase(columns: List[Column], crossReferences: List[CrossReference]): Database = {
     val refs = crossReferences.map(r => (Database.FieldRef(r.FKTABLE_SCHEMA, r.FKTABLE_NAME, r.FKCOLUMN_NAME), Database.FieldRef(r.PKTABLE_SCHEMA, r.PKTABLE_NAME, r.PKCOLUMN_NAME))).toMap

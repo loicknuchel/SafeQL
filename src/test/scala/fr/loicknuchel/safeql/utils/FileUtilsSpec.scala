@@ -4,7 +4,7 @@ import fr.loicknuchel.safeql.testingutils.BaseSpec
 import org.scalatest.BeforeAndAfterEach
 
 class FileUtilsSpec extends BaseSpec with BeforeAndAfterEach {
-  private val root = "target/file-utils-tests"
+  private val root = "target/tests-file-utils"
 
   override protected def beforeEach(): Unit = FileUtils.mkdirs(root).get
 
@@ -34,6 +34,15 @@ class FileUtilsSpec extends BaseSpec with BeforeAndAfterEach {
       FileUtils.read(s"$root/src/test/scala/fr/lkn/main.scala").get shouldBe "aaa"
       FileUtils.delete(s"$root/src").get
       an[Exception] should be thrownBy FileUtils.read(s"$root/src/test/scala/fr/lkn/main.scala").get
+    }
+    it("should list folder content") {
+      FileUtils.mkdirs(s"$root/src/main/scala/fr/loicknuchel").get
+      FileUtils.write(s"$root/src/main/scala/fr/loicknuchel/Main.scala", "public class Main").get
+      FileUtils.write(s"$root/src/main/scala/README.md", "The readme").get
+
+      FileUtils.getDirContent(s"$root/src/main/scala").get shouldBe Map(
+        "README.md" -> "The readme",
+        "fr/loicknuchel/Main.scala" -> "public class Main")
     }
   }
 }
