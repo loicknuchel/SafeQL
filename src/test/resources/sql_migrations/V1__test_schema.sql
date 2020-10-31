@@ -52,10 +52,11 @@ CREATE TABLE kinds
     date        DATE,
     boolean     BOOLEAN,
     int         INT,
+    smallint    SMALLINT,
     bigint      BIGINT,
     double      DOUBLE PRECISION,
     a_long_name INT
 );
 
-INSERT INTO kinds (char, varchar, timestamp, date, boolean, int, bigint, double, a_long_name)
-VALUES ('char', 'varchar', TIMESTAMP '2020-08-05 10:20:00', DATE '2020-08-05', TRUE, 1, 10, 4.5, 0);
+INSERT INTO kinds (char, varchar, timestamp, date, boolean, int, smallint, bigint, double, a_long_name)
+VALUES ('char', 'varchar', TIMESTAMP '2020-08-05 10:20:00', DATE '2020-08-05', TRUE, 1, 4, 10, 4.5, 0);

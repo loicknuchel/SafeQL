@@ -1,14 +1,9 @@
 package fr.loicknuchel.safeql.utils
 
-import fr.loicknuchel.safeql.testingutils.BaseSpec
-import org.scalatest.BeforeAndAfterEach
+import fr.loicknuchel.safeql.testingutils.FileSpec
 
-class FileUtilsSpec extends BaseSpec with BeforeAndAfterEach {
-  private val root = "target/tests-file-utils"
-
-  override protected def beforeEach(): Unit = FileUtils.mkdirs(root).get
-
-  override protected def afterEach(): Unit = FileUtils.delete(root).get
+class FileUtilsSpec extends FileSpec {
+  protected val root = "target/tests-FileUtilsSpec"
 
   describe("FileUtils") {
     it("should compute parent path") {
@@ -34,6 +29,27 @@ class FileUtilsSpec extends BaseSpec with BeforeAndAfterEach {
       FileUtils.read(s"$root/src/test/scala/fr/lkn/main.scala").get shouldBe "aaa"
       FileUtils.delete(s"$root/src").get
       an[Exception] should be thrownBy FileUtils.read(s"$root/src/test/scala/fr/lkn/main.scala").get
+    }
+    it("should read a file with correct line breaks") {
+      val noEmptyEndLine =
+        """Bonjour,
+          |ça va ?""".stripMargin
+      FileUtils.write(s"$root/test.txt", noEmptyEndLine).get
+      FileUtils.read(s"$root/test.txt").get shouldBe noEmptyEndLine
+
+      val emptyEndLine =
+        """Bonjour,
+          |ça va ?
+          |""".stripMargin
+      FileUtils.write(s"$root/test.txt", emptyEndLine).get
+      FileUtils.read(s"$root/test.txt").get shouldBe emptyEndLine
+
+      val manyEmptyEndLines =
+        """Bonjour,
+          |
+          |""".stripMargin
+      FileUtils.write(s"$root/test.txt", manyEmptyEndLines).get
+      FileUtils.read(s"$root/test.txt").get shouldBe manyEmptyEndLines
     }
     it("should list folder content") {
       FileUtils.mkdirs(s"$root/src/main/scala/fr/loicknuchel").get

@@ -18,6 +18,24 @@ class H2ReaderSpec extends BaseSpec with BeforeAndAfterAll {
   }
 
   describe("H2Reader") {
+    it("should have setters") {
+      val r = new H2Reader("url", "user", "pass", None, None)
+
+      r.url shouldBe "url"
+      r.url("new").url shouldBe "new"
+
+      r.user shouldBe "user"
+      r.user("new").user shouldBe "new"
+
+      r.pass shouldBe "pass"
+      r.pass("new").pass shouldBe "new"
+
+      r.schema shouldBe None
+      r.schema("new").schema shouldBe Some("new")
+
+      r.excludes shouldBe None
+      r.excludes("new").excludes shouldBe Some("new")
+    }
     it("should read the database schema") {
       reader.read().unsafeRunSync() shouldBe Database(schemas = List(Database.Schema("PUBLIC", tables = List(
         Database.Table("PUBLIC", "posts", fields = List(

@@ -14,10 +14,10 @@ import fr.loicknuchel.safeql.testingutils.Entities._
 class POSTS private(getAlias: Option[String] = Some("p")) extends Table.SqlTable("PUBLIC", "posts", getAlias) {
   type Self = POSTS
 
-  val ID: SqlField[Post.Id, POSTS] = SqlField(this, "id", "INT NOT NULL", JdbcType.Integer, nullable = false, 1)
-  val TITLE: SqlField[String, POSTS] = SqlField(this, "title", "VARCHAR(50) NOT NULL", JdbcType.VarChar, nullable = false, 2)
-  val TEXT: SqlField[String, POSTS] = SqlField(this, "text", "VARCHAR(4096) NOT NULL", JdbcType.VarChar, nullable = false, 3)
-  val DATE: SqlField[Instant, POSTS] = SqlField(this, "date", "TIMESTAMP NOT NULL", JdbcType.Timestamp, nullable = false, 4)
+  val ID: SqlFieldRaw[Post.Id, POSTS] = SqlField(this, "id", "INT NOT NULL", JdbcType.Integer, nullable = false, 1)
+  val TITLE: SqlFieldRaw[String, POSTS] = SqlField(this, "title", "VARCHAR(50) NOT NULL", JdbcType.VarChar, nullable = false, 2)
+  val TEXT: SqlFieldRaw[String, POSTS] = SqlField(this, "text", "VARCHAR(4096) NOT NULL", JdbcType.VarChar, nullable = false, 3)
+  val DATE: SqlFieldRaw[Instant, POSTS] = SqlField(this, "date", "TIMESTAMP NOT NULL", JdbcType.Timestamp, nullable = false, 4)
   val AUTHOR: SqlFieldRef[User.Id, POSTS, USERS] = SqlField(this, "author", "INT NOT NULL", JdbcType.Integer, nullable = false, 5, USERS.table.ID)
   val CATEGORY: SqlFieldRef[Category.Id, POSTS, CATEGORIES] = SqlField(this, "category", "INT", JdbcType.Integer, nullable = true, 6, CATEGORIES.table.ID)
 

@@ -9,11 +9,11 @@ import fr.loicknuchel.safeql.gen.reader.H2Reader._
 
 import scala.concurrent.ExecutionContext
 
-class H2Reader(val url: String,
-               val user: String,
-               val pass: String,
-               val schema: Option[String],
-               val excludes: Option[String]) extends Reader {
+case class H2Reader(url: String,
+                    user: String,
+                    pass: String,
+                    schema: Option[String],
+                    excludes: Option[String]) extends Reader {
   val driver: String = "org.h2.Driver"
   protected[gen] lazy val xa: doobie.Transactor[IO] = {
     implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)

@@ -28,6 +28,7 @@ class PageSpec extends BaseSpec {
 
         p.nullsFirst shouldBe false
         p.withNullsFirst.nullsFirst shouldBe true
+        p.withNullsLast.nullsFirst shouldBe false
       }
       it("should clean arguments on orderBy setter") {
         val p = Page.Params()

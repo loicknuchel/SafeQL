@@ -51,21 +51,16 @@ object Writer {
   }
 
   object IdentifierStrategy {
+    private[writer] val scalaKeywords = Set("val", "var", "def", "type", "class", "object", "import", "package")
 
-    class KeepNames extends IdentifierStrategy {
-      // only avoid scala keywords
-      override def format(value: String): String = value match {
-        case "type" => "`type`"
-        case v => v
-      }
+    case object KeepNames extends IdentifierStrategy {
+      override def format(value: String): String = if (scalaKeywords.contains(value)) s"`$value`" else value
     }
 
-    class UpperCase extends IdentifierStrategy {
+    case object UpperCase extends IdentifierStrategy {
       override def format(value: String): String = value.toUpperCase
     }
 
-    val keepNames = new KeepNames
-    val upperCase = new UpperCase
   }
 
 }

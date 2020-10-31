@@ -5,7 +5,6 @@ import java.nio.file.{Files, Paths}
 
 import fr.loicknuchel.safeql.utils.Extensions._
 
-import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 private[safeql] object FileUtils {
@@ -32,7 +31,7 @@ private[safeql] object FileUtils {
   }
 
   def read(path: String): Try[String] =
-    Try(Files.readAllLines(Paths.get(path))).map(_.asScala.mkString("\n"))
+    Try(Files.readAllBytes(Paths.get(path))).map(new String(_))
 
   def write(path: String, content: String): Try[Unit] =
     mkdirs(parent(path)).flatMap(_ => Try(Files.write(Paths.get(path), content.getBytes)).map(_ => ()))

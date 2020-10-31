@@ -1,7 +1,8 @@
 package fr.loicknuchel.safeql.gen.writer
 
+import cats.data.NonEmptyList
 import fr.loicknuchel.safeql.gen.Database
-import fr.loicknuchel.safeql.gen.Database.FieldRef
+import fr.loicknuchel.safeql.gen.Database.{Field, FieldRef, Table}
 import fr.loicknuchel.safeql.gen.writer.ScalaWriter.TableConfig.Sort
 import fr.loicknuchel.safeql.gen.writer.ScalaWriter.{DatabaseConfig, FieldConfig, SchemaConfig, TableConfig}
 import fr.loicknuchel.safeql.testingutils.BaseSpec
@@ -18,6 +19,21 @@ class ScalaWriterSpec extends BaseSpec {
   private val writer = ScalaWriter()
 
   describe("ScalaWriter") {
+    it("should have setters") {
+      val w = new ScalaWriter("dir", "pkg", Writer.IdentifierStrategy.KeepNames, DatabaseConfig())
+
+      w.directory shouldBe "dir"
+      w.directory("new").directory shouldBe "new"
+
+      w.packageName shouldBe "pkg"
+      w.packageName("new").packageName shouldBe "new"
+
+      w.identifierStrategy shouldBe Writer.IdentifierStrategy.KeepNames
+      w.identifierStrategy(Writer.IdentifierStrategy.UpperCase).identifierStrategy shouldBe Writer.IdentifierStrategy.UpperCase
+
+      w.config shouldBe DatabaseConfig()
+      w.config(DatabaseConfig(imports = List("a"))).config shouldBe DatabaseConfig(imports = List("a"))
+    }
     it("should build needed paths") {
       writer.rootFolderPath shouldBe "src/main/scala/safeql"
       writer.listTablesFilePath shouldBe "src/main/scala/safeql/Tables.scala"
@@ -47,12 +63,12 @@ class ScalaWriterSpec extends BaseSpec {
       describe("field attribute") {
         it("should generate a field attribute") {
           writer.tableFieldAttr(users, users.fields.head, DatabaseConfig()) shouldBe
-            "val ID: SqlField[Int, USERS] = SqlField(this, \"id\", \"INT NOT NULL\", JdbcType.Integer, nullable = false, 1)"
+            "val ID: SqlFieldRaw[Int, USERS] = SqlField(this, \"id\", \"INT NOT NULL\", JdbcType.Integer, nullable = false, 1)"
         }
         it("should put the custom type when defined") {
           val conf = DatabaseConfig(schemas = Map("PUBLIC" -> SchemaConfig(tables = Map("users" -> TableConfig(fields = Map("id" -> FieldConfig("User.Id")))))))
           writer.tableFieldAttr(users, users.fields.head, conf) shouldBe
-            "val ID: SqlField[User.Id, USERS] = SqlField(this, \"id\", \"INT NOT NULL\", JdbcType.Integer, nullable = false, 1)"
+            "val ID: SqlFieldRaw[User.Id, USERS] = SqlField(this, \"id\", \"INT NOT NULL\", JdbcType.Integer, nullable = false, 1)"
         }
         it("should generate a reference field attribute") {
           writer.tableFieldAttr(posts, posts.fields(2), DatabaseConfig()) shouldBe
@@ -132,6 +148,73 @@ class ScalaWriterSpec extends BaseSpec {
         DatabaseConfig(schemas = Map("PUBLIC" -> SchemaConfig(tables = Map(
           "users" -> TableConfig(search = List("NotFound"))
         )))).getDatabaseErrors(db) shouldBe List("Field 'NotFound' in search of table 'PUBLIC.users' does not exist in Database")
+      }
+      it("should access schema config by name or return empty one") {
+        val schema = SchemaConfig(tables = Map("users" -> TableConfig()))
+        val db = DatabaseConfig(schemas = Map("PUBLIC" -> schema))
+        db.schema("PUBLIC") shouldBe schema
+        db.schema("NotFound") shouldBe SchemaConfig()
+      }
+      it("should access table config by name or return empty one") {
+        val table = TableConfig(fields = Map("id" -> FieldConfig()))
+        val schema = SchemaConfig(tables = Map("users" -> table))
+        val db = DatabaseConfig(schemas = Map("PUBLIC" -> schema))
+        db.table("PUBLIC", "users") shouldBe table
+        db.table("PUBLIC", "NotFound") shouldBe TableConfig()
+        db.table("NotFound", "users") shouldBe TableConfig()
+        db.table(Table("PUBLIC", "users", List())) shouldBe table
+      }
+      it("should access field config by name or return empty one") {
+        val field = FieldConfig("User.Id")
+        val table = TableConfig(fields = Map("id" -> field))
+        val schema = SchemaConfig(tables = Map("users" -> table))
+        val db = DatabaseConfig(schemas = Map("PUBLIC" -> schema))
+        db.field("PUBLIC", "users", "id") shouldBe field
+        db.field("PUBLIC", "users", "NotFound") shouldBe FieldConfig()
+        db.field("PUBLIC", "NotFound", "id") shouldBe FieldConfig()
+        db.field("NotFound", "users", "id") shouldBe FieldConfig()
+        db.field(Table("PUBLIC", "users", List()), "id") shouldBe field
+        db.field(Field("PUBLIC", "users", "id", 1, "", "", nullable = true, 1, None, None)) shouldBe field
+        db.field(FieldRef("PUBLIC", "users", "id")) shouldBe field
+      }
+    }
+    describe("TableConfig") {
+      it("should have many constructors") {
+        val sort = TableConfig.Sort("-id")
+        val field = FieldConfig("User.Id")
+        TableConfig() shouldBe new TableConfig(None, List(), List(), Map())
+        TableConfig("alias") shouldBe new TableConfig(Some("alias"), List(), List(), Map())
+        TableConfig("alias", sort) shouldBe new TableConfig(Some("alias"), List(sort), List(), Map())
+        TableConfig("alias", sort, List("id")) shouldBe new TableConfig(Some("alias"), List(sort), List("id"), Map())
+        TableConfig("alias", sort, List("id"), Map("id" -> field)) shouldBe new TableConfig(Some("alias"), List(sort), List("id"), Map("id" -> field))
+        TableConfig("alias", sort, Map("id" -> field)) shouldBe new TableConfig(Some("alias"), List(sort), List(), Map("id" -> field))
+        TableConfig("alias", "-id", Map("id" -> field)) shouldBe new TableConfig(Some("alias"), List(sort), List(), Map("id" -> field))
+        TableConfig("alias", "-id", List("id"), Map("id" -> field)) shouldBe new TableConfig(Some("alias"), List(sort), List("id"), Map("id" -> field))
+        TableConfig("alias", Map("id" -> field)) shouldBe new TableConfig(Some("alias"), List(), List(), Map("id" -> field))
+      }
+      describe("Sort") {
+        it("should have many constructors") {
+          TableConfig.Sort("id") shouldBe TableConfig.Sort("id", "id", NonEmptyList.of(TableConfig.Sort.Field("id", asc = true, None)))
+          TableConfig.Sort("User id", "id") shouldBe TableConfig.Sort("user-id", "User id", NonEmptyList.of(TableConfig.Sort.Field("id", asc = true, None)))
+          TableConfig.Sort("user", "User id", "id") shouldBe TableConfig.Sort("user", "User id", NonEmptyList.of(TableConfig.Sort.Field("id", asc = true, None)))
+          TableConfig.Sort("User id", NonEmptyList.of("id")) shouldBe TableConfig.Sort("user-id", "User id", NonEmptyList.of(TableConfig.Sort.Field("id", asc = true, None)))
+        }
+        describe("Field") {
+          it("should have many constructors") {
+            TableConfig.Sort.Field("id") shouldBe TableConfig.Sort.Field("id", asc = true, None)
+            TableConfig.Sort.Field("-id") shouldBe TableConfig.Sort.Field("id", asc = false, None)
+            TableConfig.Sort.Field("id", "? = 'Archived'") shouldBe TableConfig.Sort.Field("id", asc = true, Some("? = 'Archived'"))
+            TableConfig.Sort.Field("-id", "? = 'Archived'") shouldBe TableConfig.Sort.Field("id", asc = false, Some("? = 'Archived'"))
+          }
+        }
+      }
+    }
+    describe("FieldConfig") {
+      it("should have many constructors") {
+        FieldConfig() shouldBe FieldConfig(None, None)
+        FieldConfig(1) shouldBe FieldConfig(Some(1), None)
+        FieldConfig("User.Id") shouldBe FieldConfig(None, Some("User.Id"))
+        FieldConfig(1, "User.Id") shouldBe FieldConfig(Some(1), Some("User.Id"))
       }
     }
   }

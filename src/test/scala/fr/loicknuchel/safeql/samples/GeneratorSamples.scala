@@ -18,7 +18,7 @@ object GeneratorSamples {
 
   def generateFromSQLFiles(): Unit = {
     Generator
-      .fromFiles(List("src/test/resources/sql_migrations/V1__test_schema.sql"))
+      .sqlFiles(List("src/test/resources/sql_migrations/V1__test_schema.sql"))
       .writer(ScalaWriter(packageName = "com.company.db"))
       .generate().unsafeRunSync()
   }

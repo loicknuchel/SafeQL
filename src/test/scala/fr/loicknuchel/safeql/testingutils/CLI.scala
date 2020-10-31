@@ -16,7 +16,7 @@ object CLI {
     val writer: ScalaWriter = ScalaWriter(
       directory = "src/test/scala",
       packageName = "fr.loicknuchel.safeql.testingutils.database",
-      identifierStrategy = Writer.IdentifierStrategy.upperCase,
+      identifierStrategy = Writer.IdentifierStrategy.UpperCase,
       config = DatabaseConfig(
         scaladoc = _ => Some("Hello"),
         imports = List("fr.loicknuchel.safeql.testingutils.Entities._"),

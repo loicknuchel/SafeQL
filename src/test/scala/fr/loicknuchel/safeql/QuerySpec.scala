@@ -4,6 +4,7 @@ import java.time.Instant
 
 import cats.data.NonEmptyList
 import doobie.util.Put
+import doobie.syntax.string._
 import doobie.util.meta.Meta
 import fr.loicknuchel.safeql.Query.Inner._
 import fr.loicknuchel.safeql.models.Page
@@ -33,17 +34,36 @@ class QuerySpec extends BaseSpec {
 
         USERS.insert.values(User.loic.id, User.loic.name, User.loic.email).sql shouldBe "INSERT INTO users (id, name, email) VALUES (?, ?, ?)"
       }
+      it("should support Fragment insert until a good solution is found for Optionals") {
+        USERS.insert.values(fr0"${User.loic.id}, ${User.loic.name}, ${User.loic.email}").sql shouldBe "INSERT INTO users (id, name, email) VALUES (?, ?, ?)"
+      }
+      it("should support partial inserts") {
+        USERS.insert.fields(USERS.ID, USERS.NAME).values(User.loic.id, User.loic.name).sql shouldBe "INSERT INTO users (id, name) VALUES (?, ?)"
+      }
       it("should fail on bad argument number") {
         an[Exception] should be thrownBy CATEGORIES.insert.values(Category.tech.id)
       }
     }
     describe("Update") {
-
+      it("should update data in a table") {
+        USERS.update.set(_.NAME, "lou").where(_.ID is User.loic.id).sql shouldBe "UPDATE users u SET name=? WHERE u.id=?"
+      }
+      it("should handle optional values only on nullable fields") {
+        USERS.update.set(_.EMAIL, Some("test")).where(_.ID is User.loic.id).sql shouldBe "UPDATE users u SET email=? WHERE u.id=?"
+        an[Exception] should be thrownBy USERS.update.set(_.NAME, Some("test")).where(_.ID is User.loic.id).sql
+      }
     }
     describe("Delete") {
-
+      it("should delete data in a table") {
+        USERS.delete.where(_.ID is User.loic.id).sql shouldBe "DELETE FROM users u WHERE u.id=?"
+      }
     }
     describe("Select") {
+      describe("all") {
+        it("should build a list query") {
+          USERS.select.all[User].sql shouldBe "SELECT u.id, u.name, u.email FROM users u"
+        }
+      }
       describe("page") {
         it("should build a paginated query") {
           USERS.select.page[User](p, ctx).sql shouldBe "SELECT u.id, u.name, u.email FROM users u LIMIT 20 OFFSET 0"
@@ -113,6 +133,32 @@ class QuerySpec extends BaseSpec {
           }
         }
       }
+      describe("option") {
+        it("should build a list query") {
+          USERS.select.where(_.ID is User.loic.id).option[User].sql shouldBe "SELECT u.id, u.name, u.email FROM users u WHERE u.id=?"
+          USERS.select.where(_.ID is User.loic.id).option[User](limit = true).sql shouldBe "SELECT u.id, u.name, u.email FROM users u WHERE u.id=? LIMIT 1"
+        }
+      }
+      describe("one") {
+        it("should build a list query") {
+          USERS.select.where(_.ID is User.loic.id).one[User].sql shouldBe "SELECT u.id, u.name, u.email FROM users u WHERE u.id=?"
+        }
+      }
+      describe("exists") {
+        it("should build a list query") {
+          USERS.select.where(_.ID is User.loic.id).exists[User].sql shouldBe "SELECT u.id, u.name, u.email FROM users u WHERE u.id=?"
+        }
+      }
+      it("should manipulate fields") {
+        USERS.select.dropFields(_.name != "id").all[User.Id].fields shouldBe List(USERS.ID)
+        USERS.select.dropFields(USERS.NAME, USERS.EMAIL).all[User.Id].fields shouldBe List(USERS.ID)
+        USERS.select.dropFields(USERS.NAME, USERS.EMAIL).prependFields(USERS.NAME).all[(String, User.Id)].fields shouldBe List(USERS.NAME, USERS.ID)
+        USERS.select.dropFields(USERS.NAME, USERS.EMAIL).appendFields(USERS.NAME).all[(User.Id, String)].fields shouldBe List(USERS.ID, USERS.NAME)
+        USERS.select.withoutFields(_.NAME).all[(User.Id, Option[String])].fields shouldBe List(USERS.ID, USERS.EMAIL)
+      }
+      it("should add limit and offset") {
+        USERS.select.offset(1).limit(2).all[User].sql shouldBe "SELECT u.id, u.name, u.email FROM users u LIMIT 2 OFFSET 1"
+      }
     }
     describe("Inner") {
       it("should compute the WHERE clause") {
@@ -140,10 +186,13 @@ class QuerySpec extends BaseSpec {
         GroupByClause(List(POSTS.ID, POSTS.TITLE)).sql shouldBe " GROUP BY p.id, p.title"
       }
       it("should compute the HAVING clause") {
+        val cond = POSTS.CATEGORY.is(Category.Id(1))
+        val filter = (Map("count" -> "true"), List(countFilter), ctx)
         HavingClause(None, None).sql shouldBe ""
-        HavingClause(Some(POSTS.CATEGORY.is(Category.Id(1))), None).sql shouldBe " HAVING p.category=?"
-        HavingClause(Some(POSTS.CATEGORY.is(Category.Id(1)) and POSTS.AUTHOR.is(User.Id(1))), None).sql shouldBe " HAVING p.category=? AND p.author=?"
-        HavingClause(None, Some((Map("count" -> "true"), List(countFilter), ctx))).sql shouldBe " HAVING COUNT(id) > ?"
+        HavingClause(Some(cond), None).sql shouldBe " HAVING p.category=?"
+        HavingClause(Some(cond and POSTS.AUTHOR.is(User.Id(1))), None).sql shouldBe " HAVING p.category=? AND p.author=?"
+        HavingClause(None, Some(filter)).sql shouldBe " HAVING COUNT(id) > ?"
+        HavingClause(Some(cond), Some(filter)).sql shouldBe " HAVING (p.category=?) AND (COUNT(id) > ?)"
       }
       it("should compute the ORDER BY clause") {
         OrderByClause(List(), None, nullsFirst = false).sql shouldBe ""

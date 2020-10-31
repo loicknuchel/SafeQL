@@ -13,8 +13,8 @@ import fr.loicknuchel.safeql.testingutils.Entities._
 class CATEGORIES private(getAlias: Option[String] = Some("c")) extends Table.SqlTable("PUBLIC", "categories", getAlias) {
   type Self = CATEGORIES
 
-  val ID: SqlField[Category.Id, CATEGORIES] = SqlField(this, "id", "INT NOT NULL", JdbcType.Integer, nullable = false, 1)
-  val NAME: SqlField[String, CATEGORIES] = SqlField(this, "name", "VARCHAR(50) NOT NULL", JdbcType.VarChar, nullable = false, 2)
+  val ID: SqlFieldRaw[Category.Id, CATEGORIES] = SqlField(this, "id", "INT NOT NULL", JdbcType.Integer, nullable = false, 1)
+  val NAME: SqlFieldRaw[String, CATEGORIES] = SqlField(this, "name", "VARCHAR(50) NOT NULL", JdbcType.VarChar, nullable = false, 2)
 
   override def getFields: List[SqlField[_, CATEGORIES]] = List(ID, NAME)
 

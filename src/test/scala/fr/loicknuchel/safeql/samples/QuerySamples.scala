@@ -1,11 +1,15 @@
 package fr.loicknuchel.safeql.samples
 
-import doobie.implicits.legacy.instant.JavaTimeInstantMeta // needed to decode Instant
+import java.time.Instant
+
+import doobie.util.meta.Meta
 import fr.loicknuchel.safeql.testingutils.Entities.{Post, User}
 import fr.loicknuchel.safeql.testingutils.SqlSpec
 import fr.loicknuchel.safeql.testingutils.database.Tables.{POSTS, USERS}
 
 class QuerySamples extends SqlSpec {
+  protected implicit val instantMeta: Meta[Instant] = doobie.implicits.legacy.instant.JavaTimeInstantMeta
+
   it("should perform a basic select") {
     val users: List[User] = USERS.select.all[User].run(xa).unsafeRunSync()
     users shouldBe User.all

@@ -50,10 +50,10 @@ object Entities {
     val all = List(newYear, first2020, sqlQueries)
   }
 
-  case class Kind(char: String, varchar: String, timestamp: Instant, date: LocalDate, boolean: Boolean, int: Int, bigint: Long, double: Double, a_long_name: Int)
+  case class Kind(char: String, varchar: String, timestamp: Instant, date: LocalDate, boolean: Boolean, int: Int, smallint: Short, bigint: Long, double: Double, a_long_name: Int)
 
   object Kind {
-    val one: Kind = Kind("char", "varchar", Instant.ofEpochSecond(1596615600), LocalDate.of(2020, 8, 5), boolean = true, 1, 10, 4.5, 0)
+    val one: Kind = Kind("char", "varchar", Instant.ofEpochSecond(1596615600), LocalDate.of(2020, 8, 5), boolean = true, 1, 4, 10, 4.5, 0)
 
     val all = List(one)
   }

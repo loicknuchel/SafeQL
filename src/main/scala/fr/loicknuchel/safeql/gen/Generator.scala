@@ -29,47 +29,47 @@ object Generator {
       .dataSource(new DriverDataSource(this.getClass.getClassLoader, reader.driver, reader.url, reader.user, reader.pass))
       .locations(flywayLocations: _*)
       .load()
-    new FlywayGeneratorBuilder(flyway, reader)
+    FlywayGeneratorBuilder(flyway, reader)
   }
 
-  class FlywayGeneratorBuilder(flyway: Flyway, reader: H2Reader) {
-    def writer(writer: Writer): FlywayGenerator = new FlywayGenerator(flyway, reader, writer)
+  case class FlywayGeneratorBuilder(flyway: Flyway, reader: H2Reader) {
+    def writer(writer: Writer): FlywayGenerator = FlywayGenerator(flyway, reader, writer)
 
-    def excludes(regex: String): FlywayGeneratorBuilder = new FlywayGeneratorBuilder(flyway, reader.excludes(regex))
+    def excludes(regex: String): FlywayGeneratorBuilder = FlywayGeneratorBuilder(flyway, reader.excludes(regex))
   }
 
-  class FlywayGenerator(flyway: Flyway, reader: H2Reader, writer: Writer) {
+  case class FlywayGenerator(flyway: Flyway, reader: H2Reader, writer: Writer) {
     def generate(): IO[Unit] = IO(flyway.migrate()).flatMap(_ => Generator.generate(reader, writer))
 
-    def excludes(regex: String): FlywayGenerator = new FlywayGenerator(flyway, reader.excludes(regex), writer)
+    def excludes(regex: String): FlywayGenerator = FlywayGenerator(flyway, reader.excludes(regex), writer)
   }
 
   /**
    * SQL files Generator
    */
 
-  def fromFiles(paths: List[String]): SQLFilesGeneratorBuilder = {
+  def sqlFiles(paths: List[String]): SQLFilesGeneratorBuilder = {
     val reader = H2Reader(
       url = s"jdbc:h2:mem:${UUID.randomUUID()};MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1",
       schema = Some("PUBLIC"),
       excludes = None)
-    new SQLFilesGeneratorBuilder(paths, reader)
+    SQLFilesGeneratorBuilder(paths, reader)
   }
 
-  class SQLFilesGeneratorBuilder(paths: List[String], reader: H2Reader) {
-    def writer(writer: Writer): SQLFilesGenerator = new SQLFilesGenerator(paths, reader, writer)
+  case class SQLFilesGeneratorBuilder(paths: List[String], reader: H2Reader) {
+    def writer(writer: Writer): SQLFilesGenerator = SQLFilesGenerator(paths, reader, writer)
 
-    def excludes(regex: String): SQLFilesGeneratorBuilder = new SQLFilesGeneratorBuilder(paths, reader.excludes(regex))
+    def excludes(regex: String): SQLFilesGeneratorBuilder = SQLFilesGeneratorBuilder(paths, reader.excludes(regex))
   }
 
-  class SQLFilesGenerator(paths: List[String], reader: H2Reader, writer: Writer) {
+  case class SQLFilesGenerator(paths: List[String], reader: H2Reader, writer: Writer) {
     def generate(): IO[Unit] = for {
       files <- paths.map(FileUtils.read).sequence.toIO
       _ <- files.map(exec(_, reader.xa)).sequence
       _ <- Generator.generate(reader, writer)
     } yield ()
 
-    def excludes(regex: String): SQLFilesGenerator = new SQLFilesGenerator(paths, reader.excludes(regex), writer)
+    def excludes(regex: String): SQLFilesGenerator = SQLFilesGenerator(paths, reader.excludes(regex), writer)
 
     private def exec(script: String, xa: doobie.Transactor[IO]): IO[Int] =
       Update0(script, None).run.transact(xa).recoverWith { case NonFatal(e) => IO.raiseError(FailedScript(script, e)) }
@@ -79,13 +79,13 @@ object Generator {
    * Reader Generator
    */
 
-  def reader(reader: Reader) = new ReaderGeneratorBuilder(reader)
+  def reader(reader: Reader): ReaderGeneratorBuilder = ReaderGeneratorBuilder(reader)
 
-  class ReaderGeneratorBuilder(reader: Reader) {
-    def writer(writer: Writer): ReaderGenerator = new ReaderGenerator(reader, writer)
+  case class ReaderGeneratorBuilder(reader: Reader) {
+    def writer(writer: Writer): ReaderGenerator = ReaderGenerator(reader, writer)
   }
 
-  class ReaderGenerator(reader: Reader, writer: Writer) {
+  case class ReaderGenerator(reader: Reader, writer: Writer) {
     def generate(): IO[Unit] = Generator.generate(reader, writer)
   }
 
@@ -98,12 +98,12 @@ object Generator {
    * Allow to start with writer
    */
 
-  def writer(writer: Writer) = new Builder(writer)
+  def writer(writer: Writer): Builder = Builder(writer)
 
-  class Builder(writer: Writer) {
+  case class Builder(writer: Writer) {
     def flyway(flywayLocations: String*): FlywayGenerator = Generator.flyway(flywayLocations: _*).writer(writer)
 
-    def fromFiles(paths: List[String]): SQLFilesGenerator = Generator.fromFiles(paths).writer(writer)
+    def sqlFiles(paths: List[String]): SQLFilesGenerator = Generator.sqlFiles(paths).writer(writer)
 
     def reader(reader: Reader): ReaderGenerator = Generator.reader(reader).writer(writer)
   }

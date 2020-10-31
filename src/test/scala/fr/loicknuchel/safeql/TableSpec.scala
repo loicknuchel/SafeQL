@@ -1,11 +1,47 @@
 package fr.loicknuchel.safeql
 
-import fr.loicknuchel.safeql.models.NotImplementedJoin
+import java.time.Instant
+
+import doobie.util.meta.Meta
+import fr.loicknuchel.safeql.models.{ConflictingTableFields, NotImplementedJoin, UnknownTableFields}
 import fr.loicknuchel.safeql.testingutils.BaseSpec
+import fr.loicknuchel.safeql.testingutils.Entities.{Post, User}
 import fr.loicknuchel.safeql.testingutils.database.Tables.{CATEGORIES, FEATURED, POSTS, USERS}
 
 class TableSpec extends BaseSpec {
+  protected implicit val instantMeta: Meta[Instant] = doobie.implicits.legacy.instant.JavaTimeInstantMeta
+
   describe("Table") {
+    it("should find a field") {
+      POSTS.field[String]("id") shouldBe POSTS.ID
+      POSTS.id[String] shouldBe POSTS.ID // use select dynamic \o/
+      an[UnknownTableFields[_]] should be thrownBy POSTS.field("miss")
+
+      val joined = POSTS.joinOn(_.AUTHOR)
+      joined.field("title") shouldBe POSTS.TITLE
+      joined.field("name") shouldBe USERS.NAME
+      joined.name shouldBe USERS.NAME
+      an[UnknownTableFields[_]] should be thrownBy joined.field("miss")
+      an[ConflictingTableFields[_]] should be thrownBy POSTS.joinOn(_.AUTHOR).field("id")
+
+      val unioned = POSTS.select.fields(POSTS.ID, POSTS.TITLE.as("name")).union(USERS.select.fields(USERS.ID, USERS.NAME))
+      unioned.field("id") shouldBe TableField("id")
+      unioned.id shouldBe TableField("id")
+      an[UnknownTableFields[_]] should be thrownBy unioned.field("miss")
+    }
+    it("should check for a field presence") {
+      POSTS.has(POSTS.ID) shouldBe true
+      POSTS.has(USERS.ID) shouldBe false
+      // FIXME POSTS.dropFields(POSTS.ID).has(POSTS.ID) shouldBe false // because `has` check just schema & table name
+    }
+    it("should manipulate fields") {
+      USERS.dropFields(_.name != "id").select.all[User.Id].fields shouldBe List(USERS.ID)
+      USERS.dropFields(USERS.NAME, USERS.EMAIL).select.all[User.Id].fields shouldBe List(USERS.ID)
+
+      val joined = POSTS.joinOn(_.AUTHOR)
+      joined.dropFields(_.name != "id").select.all[(Post.Id, User.Id)].fields shouldBe List(POSTS.ID, USERS.ID)
+      joined.dropFields(USERS.ID, USERS.NAME, USERS.EMAIL).select.all[Post].fields shouldBe POSTS.getFields
+    }
     describe("join") {
       it("should join two sql tables") {
         POSTS.join(USERS).on(POSTS.AUTHOR.is(USERS.ID)).sql shouldBe "posts p INNER JOIN users u ON p.author=u.id"

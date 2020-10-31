@@ -12,9 +12,9 @@ import fr.loicknuchel.safeql.testingutils.Entities._
 class USERS private(getAlias: Option[String] = Some("u")) extends Table.SqlTable("PUBLIC", "users", getAlias) {
   type Self = USERS
 
-  val ID: SqlField[User.Id, USERS] = SqlField(this, "id", "INT NOT NULL", JdbcType.Integer, nullable = false, 1)
-  val NAME: SqlField[String, USERS] = SqlField(this, "name", "VARCHAR(50) NOT NULL", JdbcType.VarChar, nullable = false, 2)
-  val EMAIL: SqlField[String, USERS] = SqlField(this, "email", "VARCHAR(50)", JdbcType.VarChar, nullable = true, 3)
+  val ID: SqlFieldRaw[User.Id, USERS] = SqlField(this, "id", "INT NOT NULL", JdbcType.Integer, nullable = false, 1)
+  val NAME: SqlFieldRaw[String, USERS] = SqlField(this, "name", "VARCHAR(50) NOT NULL", JdbcType.VarChar, nullable = false, 2)
+  val EMAIL: SqlFieldRaw[String, USERS] = SqlField(this, "email", "VARCHAR(50)", JdbcType.VarChar, nullable = true, 3)
 
   override def getFields: List[SqlField[_, USERS]] = List(ID, NAME, EMAIL)
 

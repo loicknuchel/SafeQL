@@ -24,18 +24,18 @@ sealed trait Field[A] {
 
   def is(value: A)(implicit p: Put[A]): Cond = IsValue(this, value)
 
+  def isNot(value: A)(implicit p: Put[A]): Cond = IsNotValue(this, value)
+
   def is(field: Field[A]): Cond = IsField(this, field)
 
   def is(select: Query.Select[A]): Cond = IsQuery(this, select)
 
-  def isNot(value: A)(implicit p: Put[A]): Cond = IsNotValue(this, value)
-
   // TODO restrict to fields with sql string type
   def like(value: String): Cond = Like(this, value)
 
-  def ilike(value: String): Cond = ILike(this, value)
-
   def notLike(value: String): Cond = NotLike(this, value)
+
+  def ilike(value: String): Cond = ILike(this, value)
 
   def gt(value: A)(implicit p: Put[A]): Cond = GtValue(this, value)
 
@@ -91,45 +91,30 @@ object Field {
 
 }
 
-class SqlField[A, +T <: Table.SqlTable](val table: T,
-                                        val name: String,
-                                        val info: SqlField.JdbcInfo,
-                                        val alias: Option[String]) extends Field[A] {
+sealed trait SqlField[A, +T <: Table.SqlTable] extends Field[A] {
+  val table: T
+  val name: String
+  val info: SqlField.JdbcInfo
+  val alias: Option[String]
+
   override def ref: Fragment = const0(s"${table.getAlias.getOrElse(table.getName)}.$name")
 
   override def value: Fragment = ref
 
-  def nullable: Boolean = info.nullable
-
-  def as(alias: String): SqlField[A, T] = new SqlField[A, T](table, name, info, Some(alias))
+  override def as(alias: String): SqlField[A, T]
 
   // create a null TableField based on a sql field, useful on union when a field is available on one side only
   def asNull: NullField[A] = NullField[A](alias.getOrElse(name))
 
   def asNull(name: String): NullField[A] = NullField[A](name)
 
-  override def toString: String = s"SqlField(${table.getName}.$name)"
-
-  def canEqual(other: Any): Boolean = other.isInstanceOf[SqlField[_, _]]
-
-  override def equals(other: Any): Boolean = other match {
-    case that: SqlField[_, _] =>
-      (that canEqual this) &&
-        table == that.table &&
-        name == that.name
-    case _ => false
-  }
-
-  override def hashCode(): Int = {
-    val state: List[Object] = List(table, name)
-    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
-  }
+  def nullable: Boolean = info.nullable
 }
 
 object SqlField {
 
-  def apply[A, T <: Table.SqlTable](table: T, name: String, jdbcDeclaration: String, jdbcType: JdbcType, nullable: Boolean, index: Int): SqlField[A, T] =
-    new SqlField(table, name, JdbcInfo(nullable, index, jdbcType, jdbcDeclaration), None)
+  def apply[A, T <: Table.SqlTable](table: T, name: String, jdbcDeclaration: String, jdbcType: JdbcType, nullable: Boolean, index: Int): SqlFieldRaw[A, T] =
+    SqlFieldRaw(table, name, JdbcInfo(nullable, index, jdbcType, jdbcDeclaration), None)
 
   def apply[A, T <: Table.SqlTable, T2 <: Table.SqlTable](table: T, name: String, jdbcDeclaration: String, jdbcType: JdbcType, nullable: Boolean, index: Int, references: SqlField[A, T2]): SqlFieldRef[A, T, T2] =
     SqlFieldRef(table, name, JdbcInfo(nullable, index, jdbcType, jdbcDeclaration), None, references)
@@ -138,11 +123,22 @@ object SqlField {
 
 }
 
-case class SqlFieldRef[A, T <: Table.SqlTable, T2 <: Table.SqlTable](override val table: T,
-                                                                     override val name: String,
-                                                                     override val info: SqlField.JdbcInfo,
-                                                                     override val alias: Option[String],
-                                                                     references: SqlField[A, T2]) extends SqlField[A, T](table, name, info, alias) {
+case class SqlFieldRaw[A, +T <: Table.SqlTable](table: T,
+                                                name: String,
+                                                info: SqlField.JdbcInfo,
+                                                alias: Option[String]) extends SqlField[A, T] {
+  override def as(alias: String): SqlFieldRaw[A, T] = copy(alias = Some(alias))
+
+  override def toString: String = s"SqlFieldRaw(${table.getName}.$name)"
+}
+
+case class SqlFieldRef[A, T <: Table.SqlTable, T2 <: Table.SqlTable](table: T,
+                                                                     name: String,
+                                                                     info: SqlField.JdbcInfo,
+                                                                     alias: Option[String],
+                                                                     references: SqlField[A, T2]) extends SqlField[A, T] {
+  override def as(alias: String): SqlFieldRef[A, T, T2] = copy(alias = Some(alias))
+
   override def toString: String = s"SqlFieldRef(${table.getName}.$name, ${references.table.getName}.${references.name})"
 }
 
@@ -183,10 +179,12 @@ object AggField {
 
   def apply[A](name: String, alias: String): SimpleAggField[A] = SimpleAggField(name, Some(alias))
 
+  def apply[A](query: Query[A]): QueryAggField[A] = QueryAggField(query, None)
+
   def apply[A](query: Query[A], alias: String): QueryAggField[A] = QueryAggField(query, Some(alias))
 }
 
-case class SimpleAggField[A](name: String, alias: Option[String]) extends AggField[A] {
+case class SimpleAggField[A](name: String, alias: Option[String] = None) extends AggField[A] {
   override def ref: Fragment = const0(alias.getOrElse(name))
 
   override def value: Fragment = const0(name)
@@ -194,7 +192,7 @@ case class SimpleAggField[A](name: String, alias: Option[String]) extends AggFie
   override def as(alias: String): AggField[A] = copy(alias = Some(alias))
 }
 
-case class QueryAggField[A](query: Query[A], alias: Option[String]) extends AggField[A] {
+case class QueryAggField[A](query: Query[A], alias: Option[String] = None) extends AggField[A] {
   override val name: String = "(" + query.sql + ")"
 
   override def ref: Fragment = alias.map(const0(_)).getOrElse(query.fr)

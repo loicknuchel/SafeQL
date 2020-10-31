@@ -42,6 +42,8 @@ object Query {
     case class Builder[T <: Table.SqlTable](private val table: T, private val fields: List[SqlField[_, T]]) {
       def fields(fields: List[SqlField[_, T]]): Builder[T] = copy(fields = fields)
 
+      def fields(fields: SqlField[_, T]*): Builder[T] = this.fields(fields.toList)
+
       // FIXME 2020-10-15: temporary hack waiting I solve the Put[Option[A]] problem (cf https://gist.github.com/loicknuchel/2297d612b58b399395bdd08d3c6dd217)
       def values(fr: Fragment): Insert[T] = Insert(table, fields, fr)
 
@@ -135,8 +137,6 @@ object Query {
         if (f.nullable) copy(values = values :+ (const0(f.name) ++ fr0"=$value")) else throw new Exception(s"Can't use an Option for non nullable field $f")
       }
 
-      def all: Update[T] = Update(table, values, WhereClause(None, None, None))
-
       def where(cond: Cond): Update[T] = Exceptions.check(cond, table, Update(table, values, WhereClause(Some(cond), None, None)))
 
       def where(cond: T => Cond): Update[T] = where(cond(table))
@@ -157,8 +157,6 @@ object Query {
   object Delete {
 
     case class Builder[T <: Table.SqlTable](private val table: T) {
-      def all: Delete[T] = Delete(table, WhereClause(None, None, None))
-
       def where(cond: Cond): Delete[T] = Exceptions.check(cond, table, Delete(table, WhereClause(Some(cond), None, None)))
 
       def where(cond: T => Cond): Delete[T] = where(cond(table))
@@ -256,6 +254,7 @@ object Query {
 
       def withoutFields(fns: (T => Field[_])*): Builder[T] = dropFields(fns.map(f => f(table)).toList)
 
+      // unsafe option is useful when a nested queries use a parent field, there is no way to track this right now as it's built independently
       def where(cond: Cond, unsafe: Boolean = false): Builder[T] =
         if (unsafe) copy(where = WhereClause(Some(cond), None, None)) else Exceptions.check(cond, table, copy(where = WhereClause(Some(cond), None, None)))
 
@@ -277,7 +276,7 @@ object Query {
 
       def union[T2 <: Table](other: Builder[T2], alias: Option[String] = None, sorts: List[(String, String, List[String])] = List(), search: List[String] = List()): Table.UnionTable = {
         if (fields.length != other.fields.length) throw new Exception(s"Field number do not match (${fields.length} vs ${other.fields.length})")
-        val invalidFields = fields.zip(other.fields).filter { case (f1, f2) => f1.alias.getOrElse(f1.name) != f2.alias.getOrElse(f2.name) } // TODO check also match of sql type (should be added)
+        val invalidFields = fields.zip(other.fields).filter { case (f1, f2) => f1.alias.getOrElse(f1.name) != f2.alias.getOrElse(f2.name) } // FIXME check also match of sql type (should be added)
         if (invalidFields.nonEmpty) throw new Exception(s"Some fields do not match: ${invalidFields.map { case (f1, f2) => f1.name + " != " + f2.name }.mkString(", ")}")
 
         val getFields = fields.map(f => TableField(f.alias.getOrElse(f.name), alias))

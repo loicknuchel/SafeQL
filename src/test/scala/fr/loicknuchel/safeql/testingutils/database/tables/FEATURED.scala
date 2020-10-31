@@ -16,8 +16,8 @@ class FEATURED private(getAlias: Option[String] = None) extends Table.SqlTable("
 
   val POST_ID: SqlFieldRef[Post.Id, FEATURED, POSTS] = SqlField(this, "post_id", "INT NOT NULL", JdbcType.Integer, nullable = false, 1, POSTS.table.ID)
   val BY: SqlFieldRef[User.Id, FEATURED, USERS] = SqlField(this, "by", "INT NOT NULL", JdbcType.Integer, nullable = false, 2, USERS.table.ID)
-  val START: SqlField[Instant, FEATURED] = SqlField(this, "start", "TIMESTAMP NOT NULL", JdbcType.Timestamp, nullable = false, 3)
-  val STOP: SqlField[Instant, FEATURED] = SqlField(this, "stop", "TIMESTAMP NOT NULL", JdbcType.Timestamp, nullable = false, 4)
+  val START: SqlFieldRaw[Instant, FEATURED] = SqlField(this, "start", "TIMESTAMP NOT NULL", JdbcType.Timestamp, nullable = false, 3)
+  val STOP: SqlFieldRaw[Instant, FEATURED] = SqlField(this, "stop", "TIMESTAMP NOT NULL", JdbcType.Timestamp, nullable = false, 4)
 
   override def getFields: List[SqlField[_, FEATURED]] = List(POST_ID, BY, START, STOP)
 

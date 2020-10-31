@@ -3,16 +3,14 @@ package fr.loicknuchel.safeql.gen
 import java.util.UUID
 
 import fr.loicknuchel.safeql.gen.reader.H2Reader
-import fr.loicknuchel.safeql.testingutils.{BaseSpec, CLI}
+import fr.loicknuchel.safeql.gen.writer.ScalaWriter
+import fr.loicknuchel.safeql.testingutils.{CLI, FileSpec}
 import fr.loicknuchel.safeql.utils.FileUtils
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.internal.jdbc.DriverDataSource
-import org.scalatest.BeforeAndAfterEach
 
-class GeneratorSpec extends BaseSpec with BeforeAndAfterEach {
-  private val root = "target/tests-generator"
-
-  override protected def afterEach(): Unit = FileUtils.delete(root).get
+class GeneratorSpec extends FileSpec {
+  protected val root = "target/tests-GeneratorSpec"
 
   describe("Generator") {
     it("should generate the same files with all the generators") {
@@ -37,7 +35,7 @@ class GeneratorSpec extends BaseSpec with BeforeAndAfterEach {
 
       // SQL files generator
       val sqlFilesPath = s"$root/sql-gen"
-      Generator.fromFiles(List("src/test/resources/sql_migrations/V1__test_schema.sql")).writer(CLI.GenerateSampleDatabase.writer.directory(sqlFilesPath)).generate().unsafeRunSync()
+      Generator.sqlFiles(List("src/test/resources/sql_migrations/V1__test_schema.sql")).writer(CLI.GenerateSampleDatabase.writer.directory(sqlFilesPath)).generate().unsafeRunSync()
       val sqlFilesDb = FileUtils.getDirContent(sqlFilesPath).get
       sqlFilesDb shouldBe basicDb
     }
@@ -47,7 +45,16 @@ class GeneratorSpec extends BaseSpec with BeforeAndAfterEach {
 
       val flywayDb = FileUtils.getDirContent(flywayWriter.rootFolderPath).get
       val currentDb = FileUtils.getDirContent(CLI.GenerateSampleDatabase.writer.rootFolderPath).get
-      currentDb shouldBe flywayDb
+      currentDb.size shouldBe flywayDb.size
+      flywayDb.foreach { case (path, content) => currentDb.getOrElse(path, "") shouldBe content }
+    }
+    it("should set the writer before the reader") {
+      val writer = ScalaWriter()
+      val reader = H2Reader("url")
+
+      Generator.writer(writer).reader(reader) shouldBe Generator.reader(reader).writer(writer)
+      // FIXME Generator.writer(writer).flyway("classpath:sql_migrations") shouldBe Generator.flyway("classpath:sql_migrations").writer(writer)
+      // FIXME Generator.writer(writer).sqlFiles(List("migrations.sql")) shouldBe Generator.sqlFiles(List("migrations.sql")).writer(writer)
     }
   }
 }

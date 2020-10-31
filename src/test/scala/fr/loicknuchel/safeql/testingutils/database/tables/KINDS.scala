@@ -14,21 +14,22 @@ import fr.loicknuchel.safeql.testingutils.Entities._
 class KINDS private(getAlias: Option[String] = None) extends Table.SqlTable("PUBLIC", "kinds", getAlias) {
   type Self = KINDS
 
-  val CHAR: SqlField[String, KINDS] = SqlField(this, "char", "CHAR(4)", JdbcType.Char, nullable = true, 1)
-  val VARCHAR: SqlField[String, KINDS] = SqlField(this, "varchar", "VARCHAR(50)", JdbcType.VarChar, nullable = true, 2)
-  val TIMESTAMP: SqlField[Instant, KINDS] = SqlField(this, "timestamp", "TIMESTAMP", JdbcType.Timestamp, nullable = true, 3)
-  val DATE: SqlField[LocalDate, KINDS] = SqlField(this, "date", "DATE", JdbcType.Date, nullable = true, 4)
-  val BOOLEAN: SqlField[Boolean, KINDS] = SqlField(this, "boolean", "BOOLEAN", JdbcType.Boolean, nullable = true, 5)
-  val INT: SqlField[Int, KINDS] = SqlField(this, "int", "INT", JdbcType.Integer, nullable = true, 6)
-  val BIGINT: SqlField[Long, KINDS] = SqlField(this, "bigint", "BIGINT", JdbcType.BigInt, nullable = true, 7)
-  val DOUBLE: SqlField[Double, KINDS] = SqlField(this, "double", "DOUBLE PRECISION", JdbcType.Double, nullable = true, 8)
-  val A_LONG_NAME: SqlField[Int, KINDS] = SqlField(this, "a_long_name", "INT", JdbcType.Integer, nullable = true, 9)
+  val CHAR: SqlFieldRaw[String, KINDS] = SqlField(this, "char", "CHAR(4)", JdbcType.Char, nullable = true, 1)
+  val VARCHAR: SqlFieldRaw[String, KINDS] = SqlField(this, "varchar", "VARCHAR(50)", JdbcType.VarChar, nullable = true, 2)
+  val TIMESTAMP: SqlFieldRaw[Instant, KINDS] = SqlField(this, "timestamp", "TIMESTAMP", JdbcType.Timestamp, nullable = true, 3)
+  val DATE: SqlFieldRaw[LocalDate, KINDS] = SqlField(this, "date", "DATE", JdbcType.Date, nullable = true, 4)
+  val BOOLEAN: SqlFieldRaw[Boolean, KINDS] = SqlField(this, "boolean", "BOOLEAN", JdbcType.Boolean, nullable = true, 5)
+  val INT: SqlFieldRaw[Int, KINDS] = SqlField(this, "int", "INT", JdbcType.Integer, nullable = true, 6)
+  val SMALLINT: SqlFieldRaw[Short, KINDS] = SqlField(this, "smallint", "SMALLINT", JdbcType.SmallInt, nullable = true, 7)
+  val BIGINT: SqlFieldRaw[Long, KINDS] = SqlField(this, "bigint", "BIGINT", JdbcType.BigInt, nullable = true, 8)
+  val DOUBLE: SqlFieldRaw[Double, KINDS] = SqlField(this, "double", "DOUBLE PRECISION", JdbcType.Double, nullable = true, 9)
+  val A_LONG_NAME: SqlFieldRaw[Int, KINDS] = SqlField(this, "a_long_name", "INT", JdbcType.Integer, nullable = true, 10)
 
-  override def getFields: List[SqlField[_, KINDS]] = List(CHAR, VARCHAR, TIMESTAMP, DATE, BOOLEAN, INT, BIGINT, DOUBLE, A_LONG_NAME)
+  override def getFields: List[SqlField[_, KINDS]] = List(CHAR, VARCHAR, TIMESTAMP, DATE, BOOLEAN, INT, SMALLINT, BIGINT, DOUBLE, A_LONG_NAME)
 
   override def getSorts: List[Sort] = List()
 
-  override def searchOn: List[SqlField[_, KINDS]] = List(CHAR, VARCHAR, TIMESTAMP, DATE, BOOLEAN, INT, BIGINT, DOUBLE, A_LONG_NAME)
+  override def searchOn: List[SqlField[_, KINDS]] = List(CHAR, VARCHAR, TIMESTAMP, DATE, BOOLEAN, INT, SMALLINT, BIGINT, DOUBLE, A_LONG_NAME)
 
   override def getFilters: List[Filter] = List()
 

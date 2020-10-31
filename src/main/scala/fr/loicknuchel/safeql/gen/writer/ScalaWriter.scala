@@ -8,10 +8,10 @@ import fr.loicknuchel.safeql.gen.writer.ScalaWriter.{DatabaseConfig, TableConfig
 import fr.loicknuchel.safeql.gen.writer.Writer.IdentifierStrategy
 import fr.loicknuchel.safeql.utils.StringUtils
 
-class ScalaWriter(val directory: String,
-                  val packageName: String,
-                  val identifierStrategy: IdentifierStrategy,
-                  val config: DatabaseConfig) extends Writer {
+case class ScalaWriter(directory: String,
+                       packageName: String,
+                       identifierStrategy: IdentifierStrategy,
+                       config: DatabaseConfig) extends Writer {
   require(config.getConfigErrors.isEmpty, s"DatabaseConfig has some errors :${config.getConfigErrors.map("\n - " + _).mkString}")
   require(StringUtils.isScalaPackage(packageName), s"'$packageName' is an invalid scala package name")
 
@@ -125,7 +125,7 @@ class ScalaWriter(val directory: String,
       val fieldRef = (if (r.schema == f.schema && r.table == f.table) "" else s"${idf(r.table)}.table.") + idf(r.field)
       s"val $fieldName: SqlFieldRef[$valueType, $tableName, ${idf(r.table)}] = SqlField(this, ${str(f.name)}, ${str(f.jdbcTypeDeclaration)}, JdbcType.$jdbcType, nullable = ${f.nullable}, ${f.index}, $fieldRef)"
     }.getOrElse {
-      s"val $fieldName: SqlField[$valueType, $tableName] = SqlField(this, ${str(f.name)}, ${str(f.jdbcTypeDeclaration)}, JdbcType.$jdbcType, nullable = ${f.nullable}, ${f.index})"
+      s"val $fieldName: SqlFieldRaw[$valueType, $tableName] = SqlField(this, ${str(f.name)}, ${str(f.jdbcTypeDeclaration)}, JdbcType.$jdbcType, nullable = ${f.nullable}, ${f.index})"
     }
   }
 
@@ -174,7 +174,7 @@ class ScalaWriter(val directory: String,
 object ScalaWriter {
   def apply(directory: String = "src/main/scala",
             packageName: String = "safeql",
-            identifierStrategy: IdentifierStrategy = Writer.IdentifierStrategy.upperCase,
+            identifierStrategy: IdentifierStrategy = Writer.IdentifierStrategy.UpperCase,
             config: DatabaseConfig = DatabaseConfig()): ScalaWriter =
     new ScalaWriter(directory, packageName, identifierStrategy, config)
 
@@ -242,15 +242,15 @@ object ScalaWriter {
 
     def apply(alias: String, sort: TableConfig.Sort, search: List[String]): TableConfig = new TableConfig(Some(alias), List(sort), search)
 
-    def apply(alias: String, fields: Map[String, FieldConfig]): TableConfig = new TableConfig(Some(alias), List(), List(), fields)
+    def apply(alias: String, sort: TableConfig.Sort, search: List[String], fields: Map[String, FieldConfig]): TableConfig = new TableConfig(Some(alias), List(sort), search, fields)
+
+    def apply(alias: String, sort: TableConfig.Sort, fields: Map[String, FieldConfig]): TableConfig = new TableConfig(Some(alias), List(sort), List(), fields)
 
     def apply(alias: String, sort: String, fields: Map[String, FieldConfig]): TableConfig = new TableConfig(Some(alias), List(TableConfig.Sort(sort)), List(), fields)
 
     def apply(alias: String, sort: String, search: List[String], fields: Map[String, FieldConfig]): TableConfig = new TableConfig(Some(alias), List(TableConfig.Sort(sort)), search, fields)
 
-    def apply(alias: String, sort: TableConfig.Sort, fields: Map[String, FieldConfig]): TableConfig = new TableConfig(Some(alias), List(sort), List(), fields)
-
-    def apply(alias: String, sort: TableConfig.Sort, search: List[String], fields: Map[String, FieldConfig]): TableConfig = new TableConfig(Some(alias), List(sort), search, fields)
+    def apply(alias: String, fields: Map[String, FieldConfig]): TableConfig = new TableConfig(Some(alias), List(), List(), fields)
 
     case class Sort(slug: String, label: String, fields: NonEmptyList[Sort.Field])
 

@@ -30,11 +30,11 @@ object Cond {
     override def fr: Fragment = f.fr ++ fr0"=$value"
   }
 
-  final case class IsField[A](f1: Field[A], f2: Field[A]) extends Cond(List(f1, f2)) {
-    override def fr: Fragment = f1.fr ++ fr0"=" ++ f2.fr
+  final case class IsNotValue[A: Put](f: Field[A], value: A) extends Cond(List(f)) {
+    override def fr: Fragment = f.fr ++ fr0" != $value"
   }
 
-  final case class IsFieldLeftOpt[A](f1: Field[Option[A]], f2: Field[A]) extends Cond(List(f1, f2)) {
+  final case class IsField[A](f1: Field[A], f2: Field[A]) extends Cond(List(f1, f2)) {
     override def fr: Fragment = f1.fr ++ fr0"=" ++ f2.fr
   }
 
@@ -42,24 +42,20 @@ object Cond {
     override def fr: Fragment = f.fr ++ fr0"=(" ++ s.fr ++ fr0")"
   }
 
-  final case class IsNotValue[A: Put](f: Field[A], value: A) extends Cond(List(f)) {
-    override def fr: Fragment = f.fr ++ fr0" != $value"
-  }
-
   final case class Like[A](f: Field[A], value: String) extends Cond(List(f)) {
     override def fr: Fragment = f.fr ++ fr0" LIKE $value"
   }
 
-  final case class ILike[A](f: Field[A], value: String) extends Cond(List(f)) {
-    override def fr: Fragment = f.fr ++ fr0" ILIKE $value"
+  final case class NotLike[A](f: Field[A], value: String) extends Cond(List(f)) {
+    override def fr: Fragment = f.fr ++ fr0" NOT LIKE $value"
   }
 
   final case class LikeExpr(e: Expr, value: String) extends Cond(e.getFields) {
     override def fr: Fragment = e.fr ++ fr0" LIKE $value"
   }
 
-  final case class NotLike[A](f: Field[A], value: String) extends Cond(List(f)) {
-    override def fr: Fragment = f.fr ++ fr0" NOT LIKE $value"
+  final case class ILike[A](f: Field[A], value: String) extends Cond(List(f)) {
+    override def fr: Fragment = f.fr ++ fr0" ILIKE $value"
   }
 
   final case class GtValue[A: Put](f: Field[A], value: A) extends Cond(List(f)) {
