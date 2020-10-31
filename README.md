@@ -1,4 +1,6 @@
-# SafeQL [![travis-badge][]][travis] [![codecov-badge][]][codecov] [![release-badge][]][release] [![maven-badge][]][maven] [![license-badge][]][license]
+# SafeQL
+
+[![travis-badge][]][travis] [![codecov-badge][]][codecov] [![release-badge][]][release] [![maven-badge][]][maven] [![license-badge][]][license]
 
 [travis]:                          https://travis-ci.com/loicknuchel/SafeQL
 [travis-badge]:                    https://travis-ci.com/loicknuchel/SafeQL.svg?branch=master
@@ -54,4 +56,4 @@ val postsWithUsers: List[(Post, User)] = POSTS.joinOn(_.AUTHOR).select.all[(Post
 ## Releasing
 
 Every commit on master is [released as SNAPSHOT](https://oss.sonatype.org/#nexus-search;quick~fr.loicknuchel) so you can use it immediately thanks to [sbt-ci-release](https://github.com/olafurpg/sbt-ci-release) plugin.
-To push a stable release, push a tag version starting with 'v' (ex: `v0.1.0`).
+To push a stable release, push a tag version starting with 'v' (ex: `v0.1.0`) or create a release from github interface with a correct tage name.

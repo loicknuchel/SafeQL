@@ -32,5 +32,8 @@ case class InvalidNumberOfFields[A](read: Read[A], fields: List[Field[_]])
 case class FailedQuery(fr: Fragment, cause: Throwable)
   extends Exception(s"Fail on ${fr.query.sql}: ${cause.getMessage}", cause)
 
+case class FailedScript(script: String, cause: Throwable)
+  extends Exception(s"Script has an error: ${cause.getMessage}", cause)
+
 case class NotImplementedJoin[T <: Table, T2 <: Table](t: T, t2: T2)
   extends Exception(s"Join between ${t.sql} and ${t2.sql} is not implemented")

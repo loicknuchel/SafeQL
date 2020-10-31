@@ -15,9 +15,12 @@ class H2Reader(val url: String,
                schema: Option[String],
                excludes: Option[String]) extends Reader {
   val driver: String = "org.h2.Driver"
+  protected[gen] lazy val xa: doobie.Transactor[IO] = {
+    implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+    Transactor.fromDriverManager[IO](driver, url, user, pass)
+  }
 
   override def read(): IO[Database] = for {
-    xa <- IO.pure(getTransactor)
     columns <- readColumns(xa)
     crossReferences <- readCrossReferences(xa)
   } yield buildDatabase(columns, crossReferences)
@@ -34,11 +37,6 @@ class H2Reader(val url: String,
         }.filterNot(f => excludes.exists(e => f.name.matches(e))))
       }.filterNot(t => excludes.exists(e => t.name.matches(e))))
     }.filterNot(s => excludes.exists(e => s.name.matches(e))))
-  }
-
-  protected[reader] def getTransactor: doobie.Transactor[IO] = {
-    implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-    Transactor.fromDriverManager[IO](driver, url, user, pass)
   }
 
   protected[reader] def readColumns(xa: doobie.Transactor[IO]): IO[List[Column]] =

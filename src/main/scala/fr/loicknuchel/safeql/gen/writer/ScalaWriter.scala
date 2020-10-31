@@ -15,9 +15,11 @@ class ScalaWriter(directory: String,
   require(config.getConfigErrors.isEmpty, s"DatabaseConfig has some errors :${config.getConfigErrors.map("\n - " + _).mkString}")
   require(StringUtils.isScalaPackage(packageName), s"'$packageName' is an invalid scala package name")
 
+  def directory(dir: String): ScalaWriter = new ScalaWriter(dir, packageName, identifierStrategy, config)
+
   override protected def getDatabaseErrors(db: Database): List[String] = config.getDatabaseErrors(db)
 
-  override protected[writer] def rootFolderPath: String = directory + "/" + packageName.replaceAll("\\.", "/")
+  override protected[gen] def rootFolderPath: String = directory + "/" + packageName.replaceAll("\\.", "/")
 
   override protected[writer] def tableFilePath(t: Table): String = tablesFolderPath + "/" + idf(t.name) + ".scala"
 

@@ -62,6 +62,20 @@ object Extensions {
     }
   }
 
+  implicit class RichTraversableOnceIO[A, M[X] <: TraversableOnce[X]](val in: M[IO[A]]) extends AnyVal {
+    def sequence(implicit cbf: CanBuildFrom[M[IO[A]], A, M[A]]): IO[M[A]] = IO {
+      val init = IO.pure(cbf(in) -> List.empty[Throwable])
+      in.foldLeft(init) { (acc, cur) =>
+        acc.flatMap { case (results, errors) =>
+          Try(cur.unsafeRunSync())
+            .map { result => (results += result, errors) }
+            .recover { case NonFatal(error) => (results, error +: errors) }
+            .toIO
+        }
+      }.flatMap(sequenceResult[A, M](_).toIO).unsafeRunSync()
+    }
+  }
+
   implicit class RichTraversableOnceFragment[M[X] <: TraversableOnce[X]](val in: M[Fragment]) extends AnyVal {
     def mkFragment(sep: Fragment): Fragment = in.toList match {
       case Nil => fr0""
