@@ -1,4 +1,5 @@
 name := "SafeQL"
+description := "A Scala DSL to build typesafe SQL queries on top of Doobie"
 // version := "0.1.0-SNAPSHOT" set by 'sbt-dynver' plugin, brought in by 'sbt-ci-release' plugin
 
 // see https://www.scala-sbt.org/1.x/docs/Cross-Build.html
@@ -25,3 +26,21 @@ libraryDependencies ++= Seq(
 // but as I have an unused import in generated file, I can't remove it and I can't ignore one package for this option :(
 scalacOptions --= Seq("-Wunused:imports", "-Ywarn-unused:imports") // 2.13 and 2.12 options
 scalacOptions --= Seq("-Xfatal-warnings") // removed as Extensions classes have warnings due to cross compile, need to find a way to handle them
+
+// publishing documentation site
+enablePlugins(MicrositesPlugin)
+micrositeUrl := "https://loicknuchel.fr"
+micrositeBaseUrl := "/SafeQL/"
+micrositeAuthor := "Loïc Knuchel"
+micrositeHomepage := "https://loicknuchel.fr/SafeQL/"
+micrositeOrganizationHomepage := "https://loicknuchel.fr"
+micrositeTwitterCreator := "@loicknuchel"
+micrositeGithubOwner := "loicknuchel"
+micrositeGithubRepo := "SafeQL"
+micrositePushSiteWith := GitHub4s
+micrositeGithubToken := sys.env.get("GITHUB_TOKEN")
+micrositeTheme := "light"
+micrositePalette := Map(
+  "brand-primary" -> "#013567",
+  "brand-secondary" -> "#009ADA",
+  "white-color" -> "#FFFFFF")

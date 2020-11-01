@@ -6,6 +6,10 @@ jdk:
 before_install:
   - git fetch --tags
 
+install:
+  - rvm use 2.6.5 --install --fuzzy
+  - gem install jekyll -v 4
+
 stages:
   - name: test
   - name: release
@@ -38,7 +42,7 @@ jobs:
     - stage: release
       name: release
       jdk: openjdk8
-      script: sbt ci-release
+      script: sbt ci-release; sbt publishMicrosite;
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
