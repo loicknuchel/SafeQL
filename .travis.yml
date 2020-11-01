@@ -42,7 +42,7 @@ jobs:
     - stage: release
       name: release
       jdk: openjdk8
-      script: sbt ci-release; sbt docs/publishMicrosite;
+      script: sbt ci-release; sbt publishMicrosite;
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
