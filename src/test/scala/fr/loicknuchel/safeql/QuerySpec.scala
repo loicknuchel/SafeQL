@@ -7,12 +7,14 @@ import doobie.util.Put
 import doobie.syntax.string._
 import doobie.util.meta.Meta
 import fr.loicknuchel.safeql.Query.Inner._
-import fr.loicknuchel.safeql.models.Page
-import fr.loicknuchel.safeql.testingutils.BaseSpec
-import fr.loicknuchel.safeql.testingutils.Entities.{Category, User}
+import fr.loicknuchel.safeql.models.{FailedQuery, Page, UnknownTableFields}
+import fr.loicknuchel.safeql.testingutils.{BaseSpec, Values}
+import fr.loicknuchel.safeql.testingutils.Entities.{Category, Post, User}
 import fr.loicknuchel.safeql.testingutils.database.Tables.{CATEGORIES, POSTS, USERS}
+import fr.loicknuchel.safeql.testingutils.database.tables.USERS
 
 class QuerySpec extends BaseSpec {
+  private val (xa, flyway) = Values.initSql()
   private implicit val instantMeta: Meta[Instant] = doobie.implicits.legacy.instant.JavaTimeInstantMeta
   private val ctx: Query.Ctx = Query.Ctx.Basic(Instant.now())
   private val p = Page.Params()
@@ -43,6 +45,46 @@ class QuerySpec extends BaseSpec {
       it("should fail on bad argument number") {
         an[Exception] should be thrownBy CATEGORIES.insert.values(Category.tech.id)
       }
+      it("should put multiple values") {
+        val f: SqlFieldRaw[String, USERS] = USERS.NAME.copy(name = "n")
+        val v = "f"
+
+        def fields(n: Int): List[SqlFieldRaw[String, USERS]] = (1 to n).map(_ => f).toList
+
+        def query(n: Int): String = s"INSERT INTO users (${(1 to n).map(_ => "n").mkString(", ")}) VALUES (${(1 to n).map(_ => "?").mkString(", ")})"
+
+        Query.Insert.Builder(USERS, fields(1)).values(v).sql shouldBe query(1)
+        Query.Insert.Builder(USERS, fields(2)).values(v, v).sql shouldBe query(2)
+        Query.Insert.Builder(USERS, fields(3)).values(v, v, v).sql shouldBe query(3)
+        Query.Insert.Builder(USERS, fields(4)).values(v, v, v, v).sql shouldBe query(4)
+        Query.Insert.Builder(USERS, fields(5)).values(v, v, v, v, v).sql shouldBe query(5)
+        Query.Insert.Builder(USERS, fields(6)).values(v, v, v, v, v, v).sql shouldBe query(6)
+        Query.Insert.Builder(USERS, fields(7)).values(v, v, v, v, v, v, v).sql shouldBe query(7)
+        Query.Insert.Builder(USERS, fields(8)).values(v, v, v, v, v, v, v, v).sql shouldBe query(8)
+        Query.Insert.Builder(USERS, fields(9)).values(v, v, v, v, v, v, v, v, v).sql shouldBe query(9)
+        Query.Insert.Builder(USERS, fields(10)).values(v, v, v, v, v, v, v, v, v, v).sql shouldBe query(10)
+        Query.Insert.Builder(USERS, fields(11)).values(v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(11)
+        Query.Insert.Builder(USERS, fields(12)).values(v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(12)
+        Query.Insert.Builder(USERS, fields(13)).values(v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(13)
+        Query.Insert.Builder(USERS, fields(14)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(14)
+        Query.Insert.Builder(USERS, fields(15)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(15)
+        Query.Insert.Builder(USERS, fields(16)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(16)
+        Query.Insert.Builder(USERS, fields(17)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(17)
+        Query.Insert.Builder(USERS, fields(18)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(18)
+        Query.Insert.Builder(USERS, fields(19)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(19)
+        Query.Insert.Builder(USERS, fields(20)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(20)
+        Query.Insert.Builder(USERS, fields(21)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(21)
+        Query.Insert.Builder(USERS, fields(22)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(22)
+        Query.Insert.Builder(USERS, fields(23)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(23)
+        Query.Insert.Builder(USERS, fields(24)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(24)
+        Query.Insert.Builder(USERS, fields(25)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(25)
+        Query.Insert.Builder(USERS, fields(26)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(26)
+        Query.Insert.Builder(USERS, fields(27)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(27)
+        Query.Insert.Builder(USERS, fields(28)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(28)
+        Query.Insert.Builder(USERS, fields(29)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(29)
+        Query.Insert.Builder(USERS, fields(30)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(30)
+        Query.Insert.Builder(USERS, fields(31)).values(v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v, v).sql shouldBe query(31)
+      }
     }
     describe("Update") {
       it("should update data in a table") {
@@ -52,10 +94,22 @@ class QuerySpec extends BaseSpec {
         USERS.update.set(_.EMAIL, Some("test")).where(_.ID is User.loic.id).sql shouldBe "UPDATE users u SET email=? WHERE u.id=?"
         an[Exception] should be thrownBy USERS.update.set(_.NAME, Some("test")).where(_.ID is User.loic.id).sql
       }
+      it("should fail on multiple update") {
+        flyway.clean()
+        flyway.migrate()
+        USERS.update.set(_.NAME, "lou").where(_.ID is User.loic.id).run(xa).unsafeRunSync()
+        an[Exception] should be thrownBy USERS.update.set(_.NAME, "lou").where(_.ID.notNull).run(xa).unsafeRunSync()
+      }
     }
     describe("Delete") {
       it("should delete data in a table") {
         USERS.delete.where(_.ID is User.loic.id).sql shouldBe "DELETE FROM users u WHERE u.id=?"
+      }
+      it("should fail on multiple delete") {
+        flyway.clean()
+        flyway.migrate()
+        POSTS.delete.where(_.ID is Post.first2020.id).run(xa).unsafeRunSync()
+        an[Exception] should be thrownBy POSTS.delete.where(_.ID.notNull).run(xa).unsafeRunSync()
       }
     }
     describe("Select") {
@@ -63,10 +117,20 @@ class QuerySpec extends BaseSpec {
         it("should build a list query") {
           USERS.select.all[User].sql shouldBe "SELECT u.id, u.name, u.email FROM users u"
         }
+        it("should list all users") {
+          flyway.clean()
+          flyway.migrate()
+          USERS.select.all[User].run(xa).unsafeRunSync() shouldBe User.all
+        }
       }
       describe("page") {
         it("should build a paginated query") {
           USERS.select.page[User](p, ctx).sql shouldBe "SELECT u.id, u.name, u.email FROM users u LIMIT 20 OFFSET 0"
+        }
+        it("should list a page of users") {
+          flyway.clean()
+          flyway.migrate()
+          USERS.select.page[User](p, ctx).run(xa).unsafeRunSync() shouldBe Page(User.all, p, 3)
         }
         it("should change pagination based on page no and size") {
           USERS.select.page[User](p.page(3), ctx).sql shouldBe "SELECT u.id, u.name, u.email FROM users u LIMIT 20 OFFSET 40"
@@ -138,15 +202,30 @@ class QuerySpec extends BaseSpec {
           USERS.select.where(_.ID is User.loic.id).option[User].sql shouldBe "SELECT u.id, u.name, u.email FROM users u WHERE u.id=?"
           USERS.select.where(_.ID is User.loic.id).option[User](limit = true).sql shouldBe "SELECT u.id, u.name, u.email FROM users u WHERE u.id=? LIMIT 1"
         }
+        it("should get one optional user") {
+          flyway.clean()
+          flyway.migrate()
+          USERS.select.where(_.ID is User.loic.id).option[User]().run(xa).unsafeRunSync() shouldBe Some(User.loic)
+        }
       }
       describe("one") {
         it("should build a list query") {
           USERS.select.where(_.ID is User.loic.id).one[User].sql shouldBe "SELECT u.id, u.name, u.email FROM users u WHERE u.id=?"
         }
+        it("should get exactly one user") {
+          flyway.clean()
+          flyway.migrate()
+          USERS.select.where(_.ID is User.loic.id).one[User].run(xa).unsafeRunSync() shouldBe User.loic
+        }
       }
       describe("exists") {
         it("should build a list query") {
           USERS.select.where(_.ID is User.loic.id).exists[User].sql shouldBe "SELECT u.id, u.name, u.email FROM users u WHERE u.id=?"
+        }
+        it("should test user existence") {
+          flyway.clean()
+          flyway.migrate()
+          USERS.select.where(_.ID is User.loic.id).exists[User].run(xa).unsafeRunSync() shouldBe true
         }
       }
       it("should manipulate fields") {
@@ -155,6 +234,14 @@ class QuerySpec extends BaseSpec {
         USERS.select.dropFields(USERS.NAME, USERS.EMAIL).prependFields(USERS.NAME).all[(String, User.Id)].fields shouldBe List(USERS.NAME, USERS.ID)
         USERS.select.dropFields(USERS.NAME, USERS.EMAIL).appendFields(USERS.NAME).all[(User.Id, String)].fields shouldBe List(USERS.ID, USERS.NAME)
         USERS.select.withoutFields(_.NAME).all[(User.Id, Option[String])].fields shouldBe List(USERS.ID, USERS.EMAIL)
+      }
+      it("should allow unknown fields when unsafe") {
+        flyway.clean()
+        flyway.migrate()
+        USERS.select.where(USERS.ID is User.loic.id).one[User].sql shouldBe "SELECT u.id, u.name, u.email FROM users u WHERE u.id=?"
+        an[UnknownTableFields[_]] should be thrownBy USERS.select.where(POSTS.ID is Post.first2020.id).one[User]
+        USERS.select.where(POSTS.ID is Post.first2020.id, unsafe = true).one[User].sql shouldBe "SELECT u.id, u.name, u.email FROM users u WHERE p.id=?"
+        an[FailedQuery] should be thrownBy USERS.select.where(POSTS.ID is Post.first2020.id, unsafe = true).one[User].run(xa).unsafeRunSync()
       }
       it("should add limit and offset") {
         USERS.select.offset(1).limit(2).all[User].sql shouldBe "SELECT u.id, u.name, u.email FROM users u LIMIT 2 OFFSET 1"

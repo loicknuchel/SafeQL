@@ -121,6 +121,9 @@ class FieldSpec extends BaseSpec {
       SimpleAggField("name").as("n") shouldBe SimpleAggField("name", alias = Some("n"))
       QueryAggField(q).as("n") shouldBe QueryAggField(q, alias = Some("n"))
     }
+    it("should have many constructors") {
+      Field(q, "n") shouldBe QueryField(q, alias = Some("n"))
+    }
     describe("SqlField") {
       it("should create null fields") {
         USERS.NAME.asNull shouldBe NullField("name")

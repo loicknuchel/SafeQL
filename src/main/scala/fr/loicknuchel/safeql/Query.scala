@@ -277,9 +277,11 @@ object Query {
       def union[T2 <: Table](other: Builder[T2], alias: Option[String] = None, sorts: List[(String, String, List[String])] = List(), search: List[String] = List()): Table.UnionTable = {
         if (fields.length != other.fields.length) throw new Exception(s"Field number do not match (${fields.length} vs ${other.fields.length})")
         val invalidFields = fields.zip(other.fields).filter { case (f1, f2) => f1.alias.getOrElse(f1.name) != f2.alias.getOrElse(f2.name) } // FIXME check also match of sql type (should be added)
-        if (invalidFields.nonEmpty) throw new Exception(s"Some fields do not match: ${invalidFields.map { case (f1, f2) => f1.name + " != " + f2.name }.mkString(", ")}")
+        if (invalidFields.nonEmpty) throw new Exception(s"Some field names do not match: ${invalidFields.map { case (f1, f2) => f1.name + " != " + f2.name }.mkString(", ")}")
 
         val getFields = fields.map(f => TableField(f.alias.getOrElse(f.name), alias))
+        val duplicateFieldName = getFields.groupBy(_.name).filter(_._2.length > 1)
+        if (duplicateFieldName.nonEmpty) throw new Exception(s"Some fields have duplicate name: ${duplicateFieldName.keys.map("'" + _ + "'").mkString(", ")}")
 
         val (invalidSorts, validSorts) = sorts.partition(s => s._3.isEmpty || s._3.exists(name => !getFields.exists(_.name == name.stripPrefix("-"))))
         if (invalidSorts.nonEmpty) throw new Exception(s"Sorts ${invalidSorts.map(_._1).mkString(", ")} can't have empty list")

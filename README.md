@@ -15,6 +15,8 @@
 
 A Scala DSL to build typesafe SQL queries on top of Doobie.
 
+**Warning**: This lib is still quite young and may have some regular breaking changes. Use it at your own risks. BTW: any feedback or new use case is welcome :D
+
 ## Quick Start
 
 Add the dependency to your `build.sbt` (Scala 2.12 or later):

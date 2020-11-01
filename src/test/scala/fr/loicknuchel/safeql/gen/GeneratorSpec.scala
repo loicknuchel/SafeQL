@@ -2,6 +2,7 @@ package fr.loicknuchel.safeql.gen
 
 import java.util.UUID
 
+import fr.loicknuchel.safeql.gen.Generator.{FlywayGenerator, ReaderGenerator, SQLFilesGenerator}
 import fr.loicknuchel.safeql.gen.reader.H2Reader
 import fr.loicknuchel.safeql.gen.writer.ScalaWriter
 import fr.loicknuchel.safeql.testingutils.{CLI, FileSpec}
@@ -52,9 +53,27 @@ class GeneratorSpec extends FileSpec {
       val writer = ScalaWriter()
       val reader = H2Reader("url")
 
-      Generator.writer(writer).reader(reader) shouldBe Generator.reader(reader).writer(writer)
-      // FIXME Generator.writer(writer).flyway("classpath:sql_migrations") shouldBe Generator.flyway("classpath:sql_migrations").writer(writer)
-      // FIXME Generator.writer(writer).sqlFiles(List("migrations.sql")) shouldBe Generator.sqlFiles(List("migrations.sql")).writer(writer)
+      Generator.writer(writer).reader(reader) shouldBe a[ReaderGenerator]
+      Generator.writer(writer).flyway("classpath:sql_migrations") shouldBe a[FlywayGenerator]
+      Generator.writer(writer).sqlFiles(List("migrations.sql")) shouldBe a[SQLFilesGenerator]
+    }
+    it("should update exclude") {
+      val writer = ScalaWriter()
+      val fb = Generator.flyway("classpath:sql_migrations")
+      fb.reader.excludes shouldBe Some(".*flyway.*")
+      fb.excludes("new").reader.excludes shouldBe Some("new")
+
+      val f = fb.writer(writer)
+      f.reader.excludes shouldBe Some(".*flyway.*")
+      f.excludes("new").reader.excludes shouldBe Some("new")
+
+      val sb = Generator.sqlFiles(List("migrations.scala"))
+      sb.reader.excludes shouldBe None
+      sb.excludes("new").reader.excludes shouldBe Some("new")
+
+      val s = sb.writer(writer)
+      s.reader.excludes shouldBe None
+      s.excludes("new").reader.excludes shouldBe Some("new")
     }
   }
 }

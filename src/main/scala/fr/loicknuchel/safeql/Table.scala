@@ -12,6 +12,7 @@ import fr.loicknuchel.safeql.Query.{Delete, Insert, Select, Update}
 import fr.loicknuchel.safeql.Table.Inner._
 import fr.loicknuchel.safeql.Table.{Join, JoinTable, Sort}
 import fr.loicknuchel.safeql.models.{ConflictingTableFields, Exceptions, NotImplementedJoin, UnknownTableFields}
+import fr.loicknuchel.safeql.utils.StringUtils
 
 import scala.language.dynamics
 
@@ -216,6 +217,10 @@ object Table {
 
     def selectDynamic[A](name: String): TableField[A] = field[A](name)
 
+    def sorts(s: List[Sort]): UnionTable = copy(getSorts = s)
+
+    def sorts(s: Sort*): UnionTable = sorts(s.toList)
+
     def filters(f: List[Filter]): UnionTable = copy(getFilters = f)
 
     def filters(f: Filter*): UnionTable = filters(f.toList)
@@ -244,11 +249,11 @@ object Table {
   }
 
   object Sort {
-    def apply(order: Field.Order[_]): Sort = new Sort(order.field.name, order.field.name, NonEmptyList.of(order))
+    def apply(order: Field.Order[_], other: Field.Order[_]*): Sort = new Sort(StringUtils.slugify(order.field.name), order.field.name, NonEmptyList.of(order, other: _*))
 
-    def apply(slug: String, order: Field.Order[_], other: Field.Order[_]*): Sort = new Sort(slug, slug, NonEmptyList.of(order, other: _*))
+    def apply(label: String, order: Field.Order[_], other: Field.Order[_]*): Sort = new Sort(StringUtils.slugify(label), label, NonEmptyList.of(order, other: _*))
 
-    def apply(slug: String, label: String, order: Field.Order[_], other: Field.Order[_]*): Sort = new Sort(slug, label, NonEmptyList.of(order, other: _*))
+    def apply(slug: String, label: String, order: Field.Order[_], other: Field.Order[_]*): Sort = new Sort(StringUtils.slugify(slug), label, NonEmptyList.of(order, other: _*))
   }
 
   sealed trait Filter {

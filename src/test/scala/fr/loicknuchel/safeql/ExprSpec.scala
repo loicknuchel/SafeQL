@@ -22,5 +22,8 @@ class ExprSpec extends BaseSpec {
       Expr.Floor(e1).sql shouldBe "FLOOR(u.name)"
       Expr.Times(e1, e2).sql shouldBe "u.name * p.title"
     }
+    it("should build cond") {
+      Expr.ValueField(sqlField).like("lou") shouldBe Cond.LikeExpr(Expr.ValueField(sqlField), "lou")
+    }
   }
 }
