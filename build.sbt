@@ -38,8 +38,7 @@ micrositeTwitterCreator := "@loicknuchel"
 micrositeGithubOwner := "loicknuchel"
 micrositeGithubRepo := "SafeQL"
 micrositePushSiteWith := GitHub4s
-micrositeGithubToken := sys.env.get("GITHUB_TOKEN")
-sys.env.get("GITHUB_TOKEN").map(t => println(s"GITHUB_TOKEN: ${t.length} length")).getOrElse(println("No GITHUB_TOKEN"))
+micrositeGithubToken := sys.env.get("GITHUB_TOKEN").map { t => println(s"GITHUB_TOKEN: ${t.length} length"); t }
 micrositeTheme := "light"
 micrositePalette := Map(
   "brand-primary" -> "#013567",
