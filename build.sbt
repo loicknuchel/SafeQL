@@ -17,7 +17,7 @@ scmInfo := Some(ScmInfo(url("https://github.com/loicknuchel/SafeQL"), "git@githu
 libraryDependencies ++= Seq(
   "org.tpolecat" %% "doobie-core" % "0.9.2",
   "org.tpolecat" %% "doobie-h2" % "0.9.2",
-  "org.flywaydb" % "flyway-core" % "7.1.0",
+  "org.flywaydb" % "flyway-core" % "7.1.1",
   "org.slf4j" % "slf4j-api" % "1.7.30",
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "org.scalatest" %% "scalatest" % "3.2.2" % Test)
