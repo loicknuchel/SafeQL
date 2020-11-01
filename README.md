@@ -15,7 +15,7 @@
 
 A Scala DSL to build typesafe SQL queries on top of Doobie.
 
-**Warning**: This lib is still quite young and may have some regular breaking changes. Use it at your own risks. BTW: any feedback or new use case is welcome :D
+**Warning**: This lib was extracted from [Gospeak](https://gospeak.io), so it's still very young and probably a bit use case specific. **Any feedback or new use case is very welcome** to help make it more generic. If you want to look at a production use case, [here it is](https://github.com/gospeak-io/gospeak/tree/master/infra/src/main/scala/gospeak/infra/services/storage/sql).
 
 ## Quick Start
 
@@ -58,4 +58,11 @@ val postsWithUsers: List[(Post, User)] = POSTS.joinOn(_.AUTHOR).select.all[(Post
 ## Releasing
 
 Every commit on master is [released as SNAPSHOT](https://oss.sonatype.org/#nexus-search;quick~fr.loicknuchel) so you can use it immediately thanks to [sbt-ci-release](https://github.com/olafurpg/sbt-ci-release) plugin.
-To push a stable release, push a tag version starting with 'v' (ex: `v0.1.0`) or create a release from github interface with a correct tage name.
+To push a release, you need to create a tag starting with 'v' (ex: `v0.1.0`). This can be done through git `git tag -a v0.1.0 -m "v0.1.0" && git push --tags` or via a github release with the correct tage name.
+
+## Building documentation
+
+Documentation is automatically built and released on travis but you can build and view it locally (you will need jekyll 4.0.0+) :
+- generate the site using `sbt makeMicrosite`
+- then go to `target/site` and serve it with jekyll: `jekyll serve -b /SafeQL`
+- and finally, open [localhost:4000/SafeQL](http://localhost:4000/SafeQL/)
