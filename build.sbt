@@ -41,6 +41,6 @@ micrositePushSiteWith := GitHub4s
 micrositeGithubToken := sys.env.get("GITHUB_TOKEN")
 micrositeTheme := "light"
 micrositePalette := Map(
-  "brand-primary" -> "#013567",
-  "brand-secondary" -> "#009ADA",
-  "white-color" -> "#FFFFFF")
+  "brand-primary" -> "#6d56c1",
+  "brand-secondary" -> "#4f9188",
+  "white-color" -> "#ffffff")
