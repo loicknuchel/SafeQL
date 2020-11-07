@@ -22,6 +22,14 @@ private[safeql] object Extensions {
     }
   }
 
+  implicit class RichOptionEither[E, A](val in: Option[Either[E, A]]) extends AnyVal {
+    def sequence: Either[E, Option[A]] = in match {
+      case Some(Right(a)) => Right(Some(a))
+      case Some(Left(e)) => Left(e)
+      case None => Right(None)
+    }
+  }
+
   implicit class RichTry[A](val in: Try[A]) extends AnyVal {
     def toIO: IO[A] = in match {
       case Success(a) => IO.pure(a)
@@ -60,6 +68,19 @@ private[safeql] object Extensions {
             .recover { case NonFatal(error) => (results, error +: errors) }
         }
       }.flatMap(sequenceResult[A, M])
+    }
+  }
+
+  implicit class RichTraversableOnceEither[E, A, M[X] <: TraversableOnce[X]](val in: M[Either[E, A]]) extends AnyVal {
+    def sequence(implicit cbf: CanBuildFrom[M[Either[E, A]], A, M[A]]): Either[E, M[A]] = {
+      val init = cbf(in) -> List.empty[E]
+      sequenceResultEither[E, A, M](in.foldLeft(init) { (acc, cur) =>
+        val (results, errors) = acc
+        cur match {
+          case Right(result) => (results += result, errors)
+          case Left(error) => (results, error +: errors)
+        }
+      }).left.map(_.head)
     }
   }
 

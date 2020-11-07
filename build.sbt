@@ -16,8 +16,9 @@ scmInfo := Some(ScmInfo(url("https://github.com/loicknuchel/SafeQL"), "git@githu
 
 libraryDependencies ++= Seq(
   "org.tpolecat" %% "doobie-core" % "0.9.2",
-  "org.tpolecat" %% "doobie-h2" % "0.9.2",
-  "org.flywaydb" % "flyway-core" % "7.1.0",
+  "org.tpolecat" %% "doobie-h2" % "0.9.2", // for generator
+  "org.flywaydb" % "flyway-core" % "7.1.0", // for generator
+  "com.github.pureconfig" %% "pureconfig" % "0.14.0", // for CLI
   "org.slf4j" % "slf4j-api" % "1.7.30",
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "org.scalatest" %% "scalatest" % "3.2.2" % Test)
@@ -44,3 +45,7 @@ micrositePalette := Map(
   "brand-primary" -> "#6d56c1",
   "brand-secondary" -> "#4f9188",
   "white-color" -> "#ffffff")
+
+// build CLI tool
+enablePlugins(PackPlugin)
+packMain := Map("safeql" -> "fr.loicknuchel.safeql.gen.Cli")

@@ -22,6 +22,13 @@ class ExtensionsSpec extends BaseSpec {
         Option(1).toEither(throw e) shouldBe Right(1) // lazy param
       }
     }
+    describe("RichOptionEither") {
+      it("should reverse monads") {
+        Some(Right(1)).sequence shouldBe Right(Some(1))
+        Some(Left("s")).sequence shouldBe Left("s")
+        Option.empty[Either[String, Int]].sequence shouldBe Right(None)
+      }
+    }
     describe("RichTry") {
       it("should transform to IO") {
         Try(1).toIO shouldBe IO.pure(1)
@@ -59,6 +66,20 @@ class ExtensionsSpec extends BaseSpec {
         Seq(Try(1), Try(2), Try(3)).sequence shouldBe Success(Seq(1, 2, 3))
         Seq(Try(1), Try(throw e), Try(3)).sequence shouldBe Failure(e)
         Seq(Try(1), Try(throw e), Try(throw e2)).sequence shouldBe Failure(MultiException(NonEmptyList.of(e, e2))) // should keep all exceptions
+      }
+    }
+    describe("RichTraversableOnceEither") {
+      it("should reverse monads") {
+        Seq[Either[String, Int]](Right(1), Right(2), Right(3)).sequence shouldBe Right(Seq(1, 2, 3))
+        Seq(Right(1), Left("b"), Right(3)).sequence shouldBe Left("b")
+        Seq(Right(1), Left("b"), Left("c")).sequence shouldBe Left("b")
+      }
+    }
+    describe("RichTraversableOnceIO") {
+      it("should reverse monads") {
+        Seq(IO.pure(1), IO.pure(2), IO.pure(3)).sequence.unsafeRunSync() shouldBe Seq(1, 2, 3)
+        Try(Seq(IO.pure(1), IO.raiseError(e), IO.pure(3)).sequence.unsafeRunSync()) shouldBe Failure(e)
+        Try(Seq(IO.pure(1), IO.raiseError(e), IO.raiseError(e2)).sequence.unsafeRunSync()) shouldBe Failure(MultiException(NonEmptyList.of(e, e2))) // should keep all exceptions
       }
     }
     describe("RichTraversableOnceFragment") {

@@ -5,7 +5,7 @@ import java.util.UUID
 import fr.loicknuchel.safeql.gen.Generator.{FlywayGenerator, ReaderGenerator, SQLFilesGenerator}
 import fr.loicknuchel.safeql.gen.reader.H2Reader
 import fr.loicknuchel.safeql.gen.writer.ScalaWriter
-import fr.loicknuchel.safeql.testingutils.{CLI, FileSpec}
+import fr.loicknuchel.safeql.testingutils.{SampleCLI, FileSpec}
 import fr.loicknuchel.safeql.utils.FileUtils
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.internal.jdbc.DriverDataSource
@@ -25,27 +25,27 @@ class GeneratorSpec extends FileSpec {
         .locations("classpath:sql_migrations")
         .load().migrate()
       val basicPath = s"$root/basic-gen"
-      Generator.reader(reader).writer(CLI.GenerateSampleDatabase.writer.directory(basicPath)).generate().unsafeRunSync()
+      Generator.reader(reader).writer(SampleCLI.GenerateSampleDatabase.writer.directory(basicPath)).generate().unsafeRunSync()
       val basicDb = FileUtils.getDirContent(basicPath).get
 
       // Flyway generator
       val flywapPath = s"$root/flyway-gen"
-      Generator.flyway("classpath:sql_migrations").writer(CLI.GenerateSampleDatabase.writer.directory(flywapPath)).generate().unsafeRunSync()
+      Generator.flyway("classpath:sql_migrations").writer(SampleCLI.GenerateSampleDatabase.writer.directory(flywapPath)).generate().unsafeRunSync()
       val flywayDb = FileUtils.getDirContent(flywapPath).get
       flywayDb shouldBe basicDb
 
       // SQL files generator
       val sqlFilesPath = s"$root/sql-gen"
-      Generator.sqlFiles(List("src/test/resources/sql_migrations/V1__test_schema.sql")).writer(CLI.GenerateSampleDatabase.writer.directory(sqlFilesPath)).generate().unsafeRunSync()
+      Generator.sqlFiles(List("src/test/resources/sql_migrations/V1__test_schema.sql")).writer(SampleCLI.GenerateSampleDatabase.writer.directory(sqlFilesPath)).generate().unsafeRunSync()
       val sqlFilesDb = FileUtils.getDirContent(sqlFilesPath).get
       sqlFilesDb shouldBe basicDb
     }
     it("should keep the generated database up to date") {
-      val flywayWriter = CLI.GenerateSampleDatabase.writer.directory(s"$root/flyway-gen")
+      val flywayWriter = SampleCLI.GenerateSampleDatabase.writer.directory(s"$root/flyway-gen")
       Generator.flyway("classpath:sql_migrations").writer(flywayWriter).generate().unsafeRunSync()
 
       val flywayDb = FileUtils.getDirContent(flywayWriter.rootFolderPath).get
-      val currentDb = FileUtils.getDirContent(CLI.GenerateSampleDatabase.writer.rootFolderPath).get
+      val currentDb = FileUtils.getDirContent(SampleCLI.GenerateSampleDatabase.writer.rootFolderPath).get
       currentDb.size shouldBe flywayDb.size
       flywayDb.foreach { case (path, content) => currentDb.getOrElse(path, "") shouldBe content }
     }

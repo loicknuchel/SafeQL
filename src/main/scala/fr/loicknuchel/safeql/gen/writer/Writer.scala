@@ -61,6 +61,11 @@ object Writer {
       override def format(value: String): String = value.toUpperCase
     }
 
+    def byName(name: String): Option[IdentifierStrategy] = name match {
+      case "KeepNames" => Some(KeepNames)
+      case "UpperCase" => Some(UpperCase)
+      case _ => None
+    }
   }
 
 }

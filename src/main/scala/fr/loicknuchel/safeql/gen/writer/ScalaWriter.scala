@@ -172,10 +172,18 @@ case class ScalaWriter(directory: String,
 }
 
 object ScalaWriter {
-  def apply(directory: String = "src/main/scala",
-            packageName: String = "safeql",
-            identifierStrategy: IdentifierStrategy = Writer.IdentifierStrategy.UpperCase,
-            config: DatabaseConfig = DatabaseConfig()): ScalaWriter =
+
+  object default {
+    val directory: String = "src/main/scala"
+    val packageName: String = "safeql"
+    val identifierStrategy: IdentifierStrategy = Writer.IdentifierStrategy.UpperCase
+    val config: DatabaseConfig = DatabaseConfig()
+  }
+
+  def apply(directory: String = default.directory,
+            packageName: String = default.packageName,
+            identifierStrategy: IdentifierStrategy = default.identifierStrategy,
+            config: DatabaseConfig = default.config): ScalaWriter =
     new ScalaWriter(directory, packageName, identifierStrategy, config)
 
   case class DatabaseConfig(scaladoc: Option[Table] => Option[String] = _ => None, // allow to add some scaladoc at the beginning of the files

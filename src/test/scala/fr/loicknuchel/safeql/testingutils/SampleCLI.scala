@@ -6,7 +6,7 @@ import fr.loicknuchel.safeql.gen.Generator
 import fr.loicknuchel.safeql.gen.writer.ScalaWriter.{DatabaseConfig, FieldConfig, SchemaConfig, TableConfig}
 import fr.loicknuchel.safeql.gen.writer.{ScalaWriter, Writer}
 
-object CLI {
+object SampleCLI {
   def main(args: Array[String]): Unit = {
     GenerateSampleDatabase.run().unsafeRunSync()
     println("Done")
