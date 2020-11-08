@@ -1,130 +1,159 @@
 package fr.loicknuchel.scalargs
 
 import cats.data.NonEmptyList
+import fr.loicknuchel.scalargs.ArgError.{CustomError, InvalidEnumValue, ValidationError}
 import fr.loicknuchel.scalargs.Reader._
 
 sealed trait Reader[+A] {
   def read(params: Params): Result[A]
 
-  def and[B](r: Reader[B]): Reader[(A, B)] = AndReader(this, r)
+  def read(args: Array[String]): Result[A] = read(Params(args))
 
-  def and[B, C](r1: Reader[B], r2: Reader[C]): Reader[(A, B, C)] = AndReader2(this, r1, r2)
+  def read(args: String): Result[A] = read(args.split(" ").map(_.trim).filter(_.nonEmpty))
 
-  def and[B, C, D](r1: Reader[B], r2: Reader[C], r3: Reader[D]): Reader[(A, B, C, D)] = AndReader3(this, r1, r2, r3)
+  def and[B](r: Reader[B]): Reader[(A, B)] = And(this, r)
 
-  def or[B >: A](r: Reader[B]): Reader[B] = OrReader(this, r)
+  def and[B, C](r1: Reader[B], r2: Reader[C]): Reader[(A, B, C)] = And2(this, r1, r2)
 
-  def map[B](f: A => B): Reader[B] = MapReader(this, f)
+  def and[B, C, D](r1: Reader[B], r2: Reader[C], r3: Reader[D]): Reader[(A, B, C, D)] = And3(this, r1, r2, r3)
 
-  def mapTry[B](f: A => Either[Errs, B]): Reader[B] = MapTryReader(this, f)
+  def or[B >: A](r: Reader[B]): Reader[B] = this match {
+    case Or(o1, o2) => Or2(o1, o2, r)
+    case Or2(o1, o2, o3) => Or3(o1, o2, o3, r)
+    case _ => Or(this, r)
+  }
 
-  def validate(p: A => Boolean, err: A => Errs): Reader[A] = FilterReader(this, p, err)
+  def or[B >: A](r1: Reader[B], r2: Reader[B]): Reader[B] = this match {
+    case Or(o1, o2) => Or3(o1, o2, r1, r2)
+    case _ => Or2(this, r1, r2)
+  }
 
-  def validate(p: A => Boolean, validation: Option[String]): Reader[A] = validate(p, Errs.validation(_, validation))
+  def or[B >: A](r1: Reader[B], r2: Reader[B], r3: Reader[B]): Reader[B] = Or3(this, r1, r2, r3)
+
+  def map[B](f: A => B): Reader[B] = Map(this, f)
+
+  def mapTry[B](f: A => Either[ArgError, B]): Reader[B] = MapTry(this, f)
+
+  def validate(p: A => Boolean, err: A => ArgError): Reader[A] = Filter(this, p, err)
+
+  def validate(p: A => Boolean, validation: Option[String]): Reader[A] = validate(p, ValidationError(_, validation))
 
   def validate(p: A => Boolean, validation: String): Reader[A] = validate(p, Some(validation))
 
   def validate(p: A => Boolean): Reader[A] = validate(p, None)
 
-  def inEnum[B >: A](set: Set[B]): Reader[B] = validate(a => set.contains(a), Errs.badEnum(_, set))
+  def inEnum[B >: A](set: Set[B]): Reader[B] = validate(a => set.contains(a), InvalidEnumValue(_, set))
 
   def inEnum[B >: A](v: B, o: B*): Reader[B] = inEnum((v :: o.toList).toSet)
 
-  def on[B](f: A => Reader[B]): Reader[(A, B)] = DynamicReader(this, f)
-
-  def parse(args: String): Either[Errs, A] = parse(args.split(" ").map(_.trim).filter(_.nonEmpty))
-
-  def parse(args: Array[String]): Either[Errs, A] = parse(Params(args))
-
-  def parse(params: Params): Either[Errs, A] = read(params).toEither.map(_._1)
+  def on[B](f: A => Reader[B]): Reader[(A, B)] = Dynamic(this, f)
 }
 
 object Reader {
-  def arg(pos: Int): ArgReader = ArgReader(pos)
+  def arg(pos: Int): Arg = Arg(pos, None, None)
 
-  def argOpt(pos: Int): ArgOptReader = ArgOptReader(pos)
+  def arg(pos: Int, name: String): Arg = Arg(pos, Some(name), None)
 
-  def flag(name: String): FlagReader = FlagReader(name)
+  def argOpt(pos: Int): ArgOpt = ArgOpt(pos, None)
 
-  def flagOpt(name: String): FlagOptReader = FlagOptReader(name)
+  def flag(name: String): Flag = Flag(name)
 
-  def flagList(name: String): FlagListReader = FlagListReader(name)
+  def flagOpt(name: String): FlagOpt = FlagOpt(name)
 
-  def flagNel(name: String): FlagNelReader = FlagNelReader(name)
+  def flagList(name: String): FlagList = FlagList(name)
 
-  def flagBool(name: String): FlagBoolReader = FlagBoolReader(name)
+  def flagNel(name: String): FlagNel = FlagNel(name)
 
-  def error[A](errs: Errs): ErrorReader[A] = ErrorReader[A](errs)
+  def flagBool(name: String): FlagBool = FlagBool(name)
 
-  def error[A](e: String): ErrorReader[A] = error(Errs.custom(e))
+  def hasFlag(name: String): FlagCheck = FlagCheck(name)
 
-  case class ErrorReader[A](errs: Errs) extends Reader[A] {
-    override def read(params: Params): Result[A] = Result.Failure(errs, params)
+  def error[A](errs: ArgError): Error[A] = Error[A](errs)
+
+  def error[A](e: String): Error[A] = error(CustomError(e))
+
+  final case class Arg(pos: Int, name: Option[String], values: Option[Set[String]]) extends Reader[String] {
+    override def read(params: Params): Result[String] = params.read(this).filter(v => values.forall(_.contains(v)), InvalidEnumValue(_, values.getOrElse(Set())))
+
+    // ugly, I don't have a better way to mix covariance and String reader
+    override def inEnum[B >: String](set: Set[B]): Reader[B] = Arg(pos, name, Some(set.asInstanceOf[Set[String]]))
   }
 
-  case class ArgReader(pos: Int) extends Reader[String] {
-    override def read(params: Params): Result[String] = params.readArg(pos)
+  final case class ArgOpt(pos: Int, name: Option[String]) extends Reader[Option[String]] {
+    override def read(params: Params): Result[Option[String]] = params.read(this)
   }
 
-  case class ArgOptReader(pos: Int) extends Reader[Option[String]] {
-    override def read(params: Params): Result[Option[String]] = params.readArgOpt(pos)
+  final case class Flag(name: String) extends Reader[String] {
+    override def read(params: Params): Result[String] = params.read(this)
   }
 
-  case class FlagReader(name: String) extends Reader[String] {
-    override def read(params: Params): Result[String] = params.readFlag(name)
+  final case class FlagOpt(name: String) extends Reader[Option[String]] {
+    override def read(params: Params): Result[Option[String]] = params.read(this)
   }
 
-  case class FlagOptReader(name: String) extends Reader[Option[String]] {
-    override def read(params: Params): Result[Option[String]] = params.readFlagOpt(name)
+  final case class FlagList(name: String) extends Reader[List[String]] {
+    override def read(params: Params): Result[List[String]] = params.read(this)
   }
 
-  case class FlagListReader(name: String) extends Reader[List[String]] {
-    override def read(params: Params): Result[List[String]] = params.readFlagList(name)
+  final case class FlagNel(name: String) extends Reader[NonEmptyList[String]] {
+    override def read(params: Params): Result[NonEmptyList[String]] = params.read(this)
   }
 
-  case class FlagNelReader(name: String) extends Reader[NonEmptyList[String]] {
-    override def read(params: Params): Result[NonEmptyList[String]] = params.readFlagNel(name)
+  final case class FlagBool(name: String) extends Reader[Boolean] {
+    override def read(params: Params): Result[Boolean] = params.read(this)
   }
 
-  case class FlagBoolReader(name: String) extends Reader[Boolean] {
-    override def read(params: Params): Result[Boolean] = params.readFlagBool(name)
+  final case class FlagCheck(name: String) extends Reader[Unit] {
+    override def read(params: Params): Result[Unit] = params.read(this)
   }
 
-  case class AndReader[A, B](ra: Reader[A], rb: Reader[B]) extends Reader[(A, B)] {
+  final case class And[A, B](ra: Reader[A], rb: Reader[B]) extends Reader[(A, B)] {
     override def read(params: Params): Result[(A, B)] = ra.read(params).chain((_, p) => rb.read(p))
   }
 
-  case class AndReader2[A, B, C](ra: Reader[A], rb: Reader[B], rc: Reader[C]) extends Reader[(A, B, C)] {
+  final case class And2[A, B, C](ra: Reader[A], rb: Reader[B], rc: Reader[C]) extends Reader[(A, B, C)] {
     override def read(params: Params): Result[(A, B, C)] = ra.read(params)
       .chain((_, p) => rb.read(p))
       .chain((_, p) => rc.read(p)).map { case ((a, b), c) => (a, b, c) }
   }
 
-  case class AndReader3[A, B, C, D](ra: Reader[A], rb: Reader[B], rc: Reader[C], rd: Reader[D]) extends Reader[(A, B, C, D)] {
+  final case class And3[A, B, C, D](ra: Reader[A], rb: Reader[B], rc: Reader[C], rd: Reader[D]) extends Reader[(A, B, C, D)] {
     override def read(params: Params): Result[(A, B, C, D)] = ra.read(params)
       .chain((_, p) => rb.read(p))
       .chain((_, p) => rc.read(p))
       .chain((_, p) => rd.read(p)).map { case (((a, b), c), d) => (a, b, c, d) }
   }
 
-  case class OrReader[A](r1: Reader[A], r2: Reader[A]) extends Reader[A] {
+  final case class Or[A](r1: Reader[A], r2: Reader[A]) extends Reader[A] {
     override def read(params: Params): Result[A] = r1.read(params).orElse(r2.read(params))
   }
 
-  case class MapReader[A, B](r: Reader[A], f: A => B) extends Reader[B] {
+  final case class Or2[A](r1: Reader[A], r2: Reader[A], r3: Reader[A]) extends Reader[A] {
+    override def read(params: Params): Result[A] = r1.read(params).orElse(r2.read(params), r3.read(params))
+  }
+
+  final case class Or3[A](r1: Reader[A], r2: Reader[A], r3: Reader[A], r4: Reader[A]) extends Reader[A] {
+    override def read(params: Params): Result[A] = r1.read(params).orElse(r2.read(params), r3.read(params), r4.read(params))
+  }
+
+  final case class Map[A, B](r: Reader[A], f: A => B) extends Reader[B] {
     override def read(params: Params): Result[B] = r.read(params).map(f)
   }
 
-  case class MapTryReader[A, B](r: Reader[A], f: A => Either[Errs, B]) extends Reader[B] {
+  final case class MapTry[A, B](r: Reader[A], f: A => Either[ArgError, B]) extends Reader[B] {
     override def read(params: Params): Result[B] = r.read(params).flatMap((a, p) => Result.from(f(a), p))
   }
 
-  case class FilterReader[A](r: Reader[A], f: A => Boolean, e: A => Errs) extends Reader[A] {
+  final case class Filter[A](r: Reader[A], f: A => Boolean, e: A => ArgError) extends Reader[A] {
     override def read(params: Params): Result[A] = r.read(params).filter(f, e)
   }
 
-  case class DynamicReader[A, B](r: Reader[A], f: A => Reader[B]) extends Reader[(A, B)] {
+  final case class Dynamic[A, B](r: Reader[A], f: A => Reader[B]) extends Reader[(A, B)] {
     override def read(params: Params): Result[(A, B)] = r.read(params).chain((a, p) => f(a).read(p))
+  }
+
+  final case class Error[A](errs: ArgError) extends Reader[A] {
+    override def read(params: Params): Result[A] = Result.Failure(errs, params)
   }
 
 }

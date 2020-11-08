@@ -1,31 +1,28 @@
 package fr.loicknuchel.scalargs
 
-import cats.data.NonEmptyList
 import fr.loicknuchel.safeql.testingutils.BaseSpec
-import fr.loicknuchel.scalargs.ArgError.{ArgumentNotFound, CustomError, NoValidAlternative}
+import fr.loicknuchel.scalargs.ArgError.{ArgumentNotFound, FlagNotFound, NoValidAlternative}
 
 class ArgErrorSpec extends BaseSpec {
   describe("ArgError") {
-    describe("noAlternative") {
-      it("should unwrap NoValidAlternative to flatten them") {
-        val (e1, e2, e3, e4) = (ArgumentNotFound(1), ArgumentNotFound(2), ArgumentNotFound(3), ArgumentNotFound(4))
-        val a12 = NoValidAlternative(e1, e2, List())
-        val a34 = NoValidAlternative(e3, e4, List())
-        Errs.noAlternative(Errs(e1), Errs(e2)) shouldBe Errs(a12)
-        Errs.noAlternative(Errs(a12), Errs(e3)) shouldBe Errs(NoValidAlternative(e1, e2, List(e3)))
-        Errs.noAlternative(Errs(e2), Errs(a34)) shouldBe Errs(NoValidAlternative(e2, e3, List(e4)))
-        Errs.noAlternative(Errs(a12), Errs(a34)) shouldBe Errs(NoValidAlternative(e1, e2, List(e3, e4)))
-      }
-      it("should add many errs") {
-        val (e1, e2, e3, e4) = (ArgumentNotFound(1), ArgumentNotFound(2), ArgumentNotFound(3), ArgumentNotFound(4))
-        Errs.noAlternative(Errs(e1), Errs(e2), Errs(e3), Errs(e4)) shouldBe Errs(NoValidAlternative(e1, e2, List(e3, e4)))
-      }
+    it("should format ArgumentNotFound") {
+      ArgumentNotFound(0).getMessage shouldBe "Missing argument 1"
+      ArgumentNotFound(0, Some("command")).getMessage shouldBe "Missing argument 1 (command)"
+      ArgumentNotFound(0, Some("command"), Some(Set("gen", "check"))).getMessage shouldBe "Missing argument 1 (command, possible values: gen, check)"
+      ArgumentNotFound(0, values = Some(Set("gen", "check"))).getMessage shouldBe "Missing argument 1 (possible values: gen, check)"
     }
-  }
-  describe("Errs") {
-    it("should transform to list") {
-      Errs.custom("e").nel shouldBe NonEmptyList.of(CustomError("e"))
-      Errs.custom("e").toList shouldBe List(CustomError("e"))
+    it("should format FlagNotFound") {
+      FlagNotFound("f1").getMessage shouldBe "Missing flag --f1"
+    }
+    it("should format NoValidAlternative") {
+      NoValidAlternative(ArgumentNotFound(0), FlagNotFound("f1")).getMessage shouldBe
+        """Invalid arguments, here are your options (fix the error you want):
+          |  - Missing argument 1
+          |  - Missing flag --f1""".stripMargin
+    }
+    it("should add many errors to NoValidAlternative at once") {
+      val (e1, e2, e3, e4) = (ArgumentNotFound(1), ArgumentNotFound(2), ArgumentNotFound(3), ArgumentNotFound(4))
+      NoValidAlternative(e1, e2, e3, e4) shouldBe NoValidAlternative(e1, e2, List(e3, e4))
     }
   }
 }

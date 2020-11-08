@@ -2,6 +2,7 @@ package fr.loicknuchel.scalargs
 
 import cats.data.NonEmptyList
 import fr.loicknuchel.safeql.testingutils.BaseSpec
+import fr.loicknuchel.scalargs.ArgError._
 import fr.loicknuchel.scalargs.ReaderSpec.Conf1
 
 class ReaderSpec extends BaseSpec {
@@ -9,88 +10,98 @@ class ReaderSpec extends BaseSpec {
   private val (a0o, a1o) = (Reader.argOpt(0), Reader.argOpt(1))
 
   describe("Reader") {
-    it("should parse arguments") {
-      a0.parse("gen") shouldBe Right("gen")
-      a0.parse("") shouldBe Left(Errs.argNotFound(0))
-      a1.parse("gen h2") shouldBe Right("h2")
-      a1.parse("gen") shouldBe Left(Errs.argNotFound(1))
+    it("should read arguments") {
+      a0.read("gen").get shouldBe Some("gen")
+      a0.read("").err shouldBe Some(ArgumentNotFound(0))
+      a1.read("gen h2").get shouldBe Some("h2")
+      a1.read("gen").err shouldBe Some(ArgumentNotFound(1))
 
-      a0o.parse("gen") shouldBe Right(Some("gen"))
-      a0o.parse("") shouldBe Right(None)
-      a1o.parse("gen h2") shouldBe Right(Some("h2"))
-      a1o.parse("gen") shouldBe Right(None)
+      a0o.read("gen").get shouldBe Some(Some("gen"))
+      a0o.read("").get shouldBe Some(None)
+      a1o.read("gen h2").get shouldBe Some(Some("h2"))
+      a1o.read("gen").get shouldBe Some(None)
     }
-    it("should parse flags") {
-      Reader.flag("file").parse("--file test.txt") shouldBe Right("test.txt")
-      Reader.flag("file").parse("--file a b") shouldBe Left(Errs.multipleFlagValues("file", List("a", "b")))
-      Reader.flag("file").parse("--file") shouldBe Left(Errs.noFlagValue("file"))
-      Reader.flag("file").parse("") shouldBe Left(Errs.flagNotFound("file"))
+    it("should read flags") {
+      Reader.flag("file").read("--file test.txt").get shouldBe Some("test.txt")
+      Reader.flag("file").read("--file a b").err shouldBe Some(UniqueFlagHasMultipleValues("file", List("a", "b")))
+      Reader.flag("file").read("--file").err shouldBe Some(NoFlagValue("file"))
+      Reader.flag("file").read("").err shouldBe Some(FlagNotFound("file"))
 
-      Reader.flagOpt("file").parse("--file test.txt") shouldBe Right(Some("test.txt"))
-      Reader.flagOpt("file").parse("--file a b") shouldBe Left(Errs.multipleFlagValues("file", List("a", "b")))
-      Reader.flagOpt("file").parse("--file") shouldBe Left(Errs.noFlagValue("file"))
-      Reader.flagOpt("file").parse("") shouldBe Right(None)
+      Reader.flagOpt("file").read("--file test.txt").get shouldBe Some(Some("test.txt"))
+      Reader.flagOpt("file").read("--file a b").err shouldBe Some(UniqueFlagHasMultipleValues("file", List("a", "b")))
+      Reader.flagOpt("file").read("--file").err shouldBe Some(NoFlagValue("file"))
+      Reader.flagOpt("file").read("").get shouldBe Some(None)
 
-      Reader.flagList("file").parse("--file test.txt") shouldBe Right(List("test.txt"))
-      Reader.flagList("file").parse("--file a b") shouldBe Right(List("a", "b"))
-      Reader.flagList("file").parse("--file") shouldBe Right(List())
-      Reader.flagList("file").parse("") shouldBe Left(Errs.flagNotFound("file"))
+      Reader.flagList("file").read("--file test.txt").get shouldBe Some(List("test.txt"))
+      Reader.flagList("file").read("--file a b").get shouldBe Some(List("a", "b"))
+      Reader.flagList("file").read("--file").get shouldBe Some(List())
+      Reader.flagList("file").read("").err shouldBe Some(FlagNotFound("file"))
 
-      Reader.flagNel("file").parse("--file test.txt") shouldBe Right(NonEmptyList.of("test.txt"))
-      Reader.flagNel("file").parse("--file a b") shouldBe Right(NonEmptyList.of("a", "b"))
-      Reader.flagNel("file").parse("--file") shouldBe Left(Errs.noFlagValue("file"))
-      Reader.flagNel("file").parse("") shouldBe Left(Errs.flagNotFound("file"))
+      Reader.flagNel("file").read("--file test.txt").get shouldBe Some(NonEmptyList.of("test.txt"))
+      Reader.flagNel("file").read("--file a b").get shouldBe Some(NonEmptyList.of("a", "b"))
+      Reader.flagNel("file").read("--file").err shouldBe Some(NoFlagValue("file"))
+      Reader.flagNel("file").read("").err shouldBe Some(FlagNotFound("file"))
 
-      Reader.flagBool("file").parse("--file test.txt") shouldBe Left(Errs.flagHasValue("file", "test.txt"))
-      Reader.flagBool("file").parse("--file a b") shouldBe Left(Errs.flagHasValues("file", List("a", "b")))
-      Reader.flagBool("file").parse("--file") shouldBe Right(true)
-      Reader.flagBool("file").parse("") shouldBe Right(false)
+      Reader.flagBool("file").read("--file test.txt").err shouldBe Some(FlagHasValue("file", "test.txt"))
+      Reader.flagBool("file").read("--file a b").err shouldBe Some(EmptyFlagHasMultipleValues("file", List("a", "b")))
+      Reader.flagBool("file").read("--file").get shouldBe Some(true)
+      Reader.flagBool("file").read("").get shouldBe Some(false)
+
+      Reader.hasFlag("file").read("--file test.txt").err shouldBe Some(FlagHasValue("file", "test.txt"))
+      Reader.hasFlag("file").read("--file a b").err shouldBe Some(EmptyFlagHasMultipleValues("file", List("a", "b")))
+      Reader.hasFlag("file").read("--file").get shouldBe Some(())
+      Reader.hasFlag("file").read("").err shouldBe Some(FlagNotFound("file"))
     }
     it("should combine readers") {
-      a0.and(a1).parse("gen h2") shouldBe Right("gen" -> "h2")
-      a0.and(a1).parse("gen") shouldBe Left(Errs.argNotFound(1))
-      a0.and(a1).parse("") shouldBe Left(Errs.argNotFound(0))
-      a0.and(a1o).parse("gen h2") shouldBe Right("gen" -> Some("h2"))
-      a0.and(a1o).parse("gen") shouldBe Right("gen" -> None)
+      a0.and(a1).read("gen h2").get shouldBe Some("gen" -> "h2")
+      a0.and(a1).read("gen").err shouldBe Some(ArgumentNotFound(1))
+      a0.and(a1).read("").err shouldBe Some(ArgumentNotFound(0))
+      a0.and(a1o).read("gen h2").get shouldBe Some("gen" -> Some("h2"))
+      a0.and(a1o).read("gen").get shouldBe Some("gen" -> None)
 
-      a0.and(a1).and(a2).parse("a b c") shouldBe Right((("a", "b"), "c"))
-      a0.and(a1, a2).parse("a b c") shouldBe Right(("a", "b", "c"))
+      a0.and(a1).and(a2).read("a b c").get shouldBe Some((("a", "b"), "c"))
+      a0.and(a1, a2).read("a b c").get shouldBe Some(("a", "b", "c"))
 
-      a0.and(a1).and(a2).and(a3).parse("a b c d") shouldBe Right(((("a", "b"), "c"), "d"))
-      a0.and(a1, a2, a3).parse("a b c d") shouldBe Right(("a", "b", "c", "d"))
+      a0.and(a1).and(a2).and(a3).read("a b c d").get shouldBe Some(((("a", "b"), "c"), "d"))
+      a0.and(a1, a2, a3).read("a b c d").get shouldBe Some(("a", "b", "c", "d"))
     }
     it("should add alternative readers") {
-      a0.or(a1).parse("gen h2") shouldBe Right("gen")
-      a1.or(a0).parse("gen h2") shouldBe Right("h2")
-      a0.or(a1).parse("gen") shouldBe Right("gen")
-      a1.or(a0).parse("gen") shouldBe Right("gen")
-      a0.or(a1).parse("") shouldBe Left(Errs.noAlternative(Errs.argNotFound(0), Errs.argNotFound(1)))
-      a0.or(a1).or(a2).parse("") shouldBe Left(Errs.noAlternative(Errs.argNotFound(0), Errs.argNotFound(1), Errs.argNotFound(2)))
+      a0.or(a1).read("gen h2").get shouldBe Some("gen")
+      a1.or(a0).read("gen h2").get shouldBe Some("h2")
+      a0.or(a1).read("gen").get shouldBe Some("gen")
+      a1.or(a0).read("gen").get shouldBe Some("gen")
+      a0.or(a1).read("").err shouldBe Some(NoValidAlternative(ArgumentNotFound(0), ArgumentNotFound(1)))
+      a0.or(a1, a2).read("").err shouldBe Some(NoValidAlternative(ArgumentNotFound(0), ArgumentNotFound(1), ArgumentNotFound(2)))
+      a0.or(a1).or(a2) shouldBe a0.or(a1, a2)
+      a0.or(a1, a2, a3).read("").err shouldBe Some(NoValidAlternative(ArgumentNotFound(0), ArgumentNotFound(1), ArgumentNotFound(2), ArgumentNotFound(3)))
+      a0.or(a1, a2).or(a3) shouldBe a0.or(a1, a2, a3)
+      a0.or(a1).or(a2, a3) shouldBe a0.or(a1, a2, a3)
+      a0.or(a1).or(a2).or(a3) shouldBe a0.or(a1, a2, a3)
     }
     it("should validate reader result") {
-      a0.parse("gen") shouldBe Right("gen")
-      a0.validate(_ => true).parse("gen") shouldBe Right("gen")
-      a0.validate(_ => false).parse("gen") shouldBe Left(Errs.validation("gen", None))
-      a0.validate(_ => true, "is gen").parse("gen") shouldBe Right("gen")
-      a0.inEnum("gen", "help").parse("gen") shouldBe Right("gen")
-      a0.inEnum("gen", "help").parse("h2") shouldBe Left(Errs.badEnum("h2", Set("gen", "help")))
+      a0.read("gen").get shouldBe Some("gen")
+      a0.validate(_ => true).read("gen").get shouldBe Some("gen")
+      a0.validate(_ => false).read("gen").err shouldBe Some(ValidationError("gen"))
+      a0.validate(_ => true, "is gen").read("gen").get shouldBe Some("gen")
+      a0.inEnum("gen", "help").read("gen").get shouldBe Some("gen")
+      a0.inEnum("gen", "help").read("h2").err shouldBe Some(InvalidEnumValue("h2", Set("gen", "help")))
     }
     it("should not read twice an argument") {
-      a0.and(a0).parse("gen h2") shouldBe Left(Errs.argRead(0))
+      a0.and(a0).read("gen h2").err shouldBe Some(ArgumentReadTwice(0))
     }
     it("should not read twice a flag") {
-      Reader.flag("f").and(Reader.flag("f")).parse("--f h2") shouldBe Left(Errs.flagRead("f"))
+      Reader.flag("f").and(Reader.flag("f")).read("--f h2").err shouldBe Some(FlagReadTwice("f"))
     }
     it("should transform readers") {
-      a0.map(_.length).parse("gen") shouldBe Right(3)
-      a0.mapTry(s => Right(s.length)).parse("gen") shouldBe Right(3)
-      a0.mapTry(s => Left(Errs.custom(s"err $s"))).parse("gen") shouldBe Left(Errs.custom("err gen"))
+      a0.map(_.length).read("gen").get shouldBe Some(3)
+      a0.mapTry(s => Right(s.length)).read("gen").get shouldBe Some(3)
+      a0.mapTry(s => Left(CustomError(s"err $s"))).read("gen").err shouldBe Some(CustomError("err gen"))
     }
-    it("should parse object conf") {
+    it("should read object conf") {
       val reader: Reader[Conf1] = a0.and(a1o).map { case (a1, a2) => Conf1(a1, a2) }
-      reader.parse("gen h2") shouldBe Right(Conf1("gen", Some("h2")))
-      reader.parse("gen") shouldBe Right(Conf1("gen", None))
-      reader.parse("") shouldBe Left(Errs.argNotFound(0))
+      reader.read("gen h2").get shouldBe Some(Conf1("gen", Some("h2")))
+      reader.read("gen").get shouldBe Some(Conf1("gen", None))
+      reader.read("").err shouldBe Some(ArgumentNotFound(0))
     }
     it("should add readers based on read value") {
       val r = a0.on[String] {
@@ -98,9 +109,9 @@ class ReaderSpec extends BaseSpec {
         case "java" => Reader.flag("data")
         case v => Reader.error(s"Invalid value $v")
       }
-      r.parse("scala --conf conf.json") shouldBe Right("scala" -> "conf.json")
-      r.parse("java --data data.csv") shouldBe Right("java" -> "data.csv")
-      r.parse("ruby") shouldBe Left(Errs.custom("Invalid value ruby"))
+      r.read("scala --conf conf.json").get shouldBe Some("scala" -> "conf.json")
+      r.read("java --data data.csv").get shouldBe Some("java" -> "data.csv")
+      r.read("ruby").err shouldBe Some(CustomError("Invalid value ruby"))
     }
   }
 }

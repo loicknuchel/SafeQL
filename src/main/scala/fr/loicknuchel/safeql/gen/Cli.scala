@@ -20,8 +20,8 @@ object Cli {
   def main(args: Array[String]): Unit = {
     println(s"Executing SafeQL CLI with args: ${args.mkString(" ")}")
     val now = Instant.now()
-    CliConf.reader.parse(args).left.map(CliErrors.from).flatMap(CliCommand.from(now, _)) match {
-      case Left(errs) => println(errs.message)
+    CliConf.reader.read(args).toEither.left.map(CliErrors.from).flatMap(CliCommand.from(now, _)) match {
+      case Left(errs) => println(errs.getMessage)
       case Right(cmd) => cmd.run.unsafeRunSync()
     }
   }

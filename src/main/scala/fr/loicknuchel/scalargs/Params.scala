@@ -1,6 +1,8 @@
 package fr.loicknuchel.scalargs
 
 import cats.data.NonEmptyList
+import fr.loicknuchel.scalargs.ArgError._
+import fr.loicknuchel.scalargs.Reader.{Arg, ArgOpt, Flag, FlagBool, FlagCheck, FlagList, FlagNel, FlagOpt}
 
 case class Params(args: List[(Int, String)], flags: Map[String, List[String]], readArgs: Set[Int], readFlags: Set[String]) {
   private def addArg(arg: String): Params = copy(args = args :+ (args.length -> arg))
@@ -9,52 +11,59 @@ case class Params(args: List[(Int, String)], flags: Map[String, List[String]], r
 
   private def addFlagValue(flag: String, value: String): Params = copy(flags = flags + (flag -> (flags.getOrElse(flag, List()) :+ value)))
 
-  def readArg(pos: Int): Result[String] = arg(pos).flatMap {
-    case (None, p) => Result.Failure(Errs.argNotFound(pos), p)
+  def read(a: Arg): Result[String] = arg(a.pos, a.name).flatMap {
+    case (None, p) => Result.Failure(ArgumentNotFound(a.pos, a.name, a.values), p)
     case (Some(v), p) => Result.Success(v, p)
   }
 
-  def readArgOpt(pos: Int): Result[Option[String]] = arg(pos)
+  def read(a: ArgOpt): Result[Option[String]] = arg(a.pos, a.name)
 
-  private def arg(pos: Int): Result[Option[String]] =
-    if (readArgs.contains(pos)) Result.Failure(Errs.argRead(pos), this)
-    else Result.Success(args.find(_._1 == pos).map(_._2), copy(readArgs = readArgs + pos))
-
-  def readFlag(name: String): Result[String] = flag(name).flatMap {
-    case (None, p) => Result.Failure(Errs.flagNotFound(name), p)
-    case (Some(List()), p) => Result.Failure(Errs.noFlagValue(name), p)
+  def read(f: Flag): Result[String] = flag(f.name).flatMap {
+    case (None, p) => Result.Failure(FlagNotFound(f.name), p)
+    case (Some(List()), p) => Result.Failure(NoFlagValue(f.name), p)
     case (Some(List(v)), p) => Result.Success(v, p)
-    case (Some(l), p) => Result.Failure(Errs.multipleFlagValues(name, l), p)
+    case (Some(l), p) => Result.Failure(UniqueFlagHasMultipleValues(f.name, l), p)
   }
 
-  def readFlagOpt(name: String): Result[Option[String]] = flag(name).flatMap {
+  def read(f: FlagOpt): Result[Option[String]] = flag(f.name).flatMap {
     case (None, p) => Result.Success(None, p)
-    case (Some(List()), p) => Result.Failure(Errs.noFlagValue(name), p)
+    case (Some(List()), p) => Result.Failure(NoFlagValue(f.name), p)
     case (Some(List(v)), p) => Result.Success(Some(v), p)
-    case (Some(l), p) => Result.Failure(Errs.multipleFlagValues(name, l), p)
+    case (Some(l), p) => Result.Failure(UniqueFlagHasMultipleValues(f.name, l), p)
   }
 
-  def readFlagList(name: String): Result[List[String]] = flag(name).flatMap {
+  def read(f: FlagList): Result[List[String]] = flag(f.name).flatMap {
     case (Some(l), p) => Result.Success(l, p)
-    case (None, p) => Result.Failure(Errs.flagNotFound(name), p)
+    case (None, p) => Result.Failure(FlagNotFound(f.name), p)
   }
 
-  def readFlagNel(name: String): Result[NonEmptyList[String]] = flag(name).flatMap {
-    case (None, p) => Result.Failure(Errs.flagNotFound(name), p)
-    case (Some(List()), p) => Result.Failure(Errs.noFlagValue(name), p)
+  def read(f: FlagNel): Result[NonEmptyList[String]] = flag(f.name).flatMap {
+    case (None, p) => Result.Failure(FlagNotFound(f.name), p)
+    case (Some(List()), p) => Result.Failure(NoFlagValue(f.name), p)
     case (Some(List(v)), p) => Result.Success(NonEmptyList.of(v), p)
     case (Some(l), p) => Result.Success(NonEmptyList.fromListUnsafe(l), p)
   }
 
-  def readFlagBool(name: String): Result[Boolean] = flag(name).flatMap {
+  def read(f: FlagBool): Result[Boolean] = flag(f.name).flatMap {
     case (None, p) => Result.Success(false, p)
     case (Some(List()), p) => Result.Success(true, p)
-    case (Some(List(v)), p) => Result.Failure(Errs.flagHasValue(name, v), p)
-    case (Some(l), p) => Result.Failure(Errs.flagHasValues(name, l), p)
+    case (Some(List(v)), p) => Result.Failure(FlagHasValue(f.name, v), p)
+    case (Some(l), p) => Result.Failure(EmptyFlagHasMultipleValues(f.name, l), p)
   }
 
+  def read(f: FlagCheck): Result[Unit] = flag(f.name).flatMap {
+    case (None, p) => Result.Failure(FlagNotFound(f.name), p)
+    case (Some(List()), p) => Result.Success((), p)
+    case (Some(List(v)), p) => Result.Failure(FlagHasValue(f.name, v), p)
+    case (Some(l), p) => Result.Failure(EmptyFlagHasMultipleValues(f.name, l), p)
+  }
+
+  private def arg(pos: Int, name: Option[String]): Result[Option[String]] =
+    if (readArgs.contains(pos)) Result.Failure(ArgumentReadTwice(pos, name), this)
+    else Result.Success(args.find(_._1 == pos).map(_._2), copy(readArgs = readArgs + pos))
+
   private def flag(name: String): Result[Option[List[String]]] =
-    if (readFlags.contains(name)) Result.Failure(Errs.flagRead(name), this)
+    if (readFlags.contains(name)) Result.Failure(FlagReadTwice(name), this)
     else Result.Success(flags.get(name), copy(readFlags = readFlags + name))
 }
 

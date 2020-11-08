@@ -23,8 +23,10 @@ class CliSpec extends BaseSpec {
       }
       out.toString shouldBe
         """Executing SafeQL CLI with args: gen --flyway classpath:sql_migrations --output bad
-          |Errors:
-          | - No valid alternative, fix one of: 'Unknown output 'bad'', 'Use --help to see doc (value: false)'
+          |CLI Errors:
+          |  - Invalid arguments, here are your options (fix the error you want):
+          |    - Unknown output 'bad'
+          |    - Missing flag --help
           |""".stripMargin
     }
   }
