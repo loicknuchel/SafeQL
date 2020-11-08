@@ -48,12 +48,12 @@ private[gen] object CliConf {
   private val scalaReader: Reader[ScalaConf] =
     Reader.flagOpt("dir").and(
       Reader.flagOpt("package"),
-      Reader.flagOpt("identifiers").mapTry(_.map(s => IdentifierStrategy.byName(s).toRight(InvalidEnumValue(s, IdentifierStrategy.all.map(_.toString)))).sequence),
+      Reader.flagOpt("identifiers").mapTry((a, p) => a.map(s => IdentifierStrategy.byName(s).toRight(InvalidEnumValue(s, IdentifierStrategy.all.map(_.toString), p))).sequence),
       Reader.flagOpt("config")
     ).map { case (dir, pkg, idf, conf) => ScalaConf(dir, pkg, idf, conf) }
   private val writerReader: Reader[WriterConf] = Reader.flag("output").on {
-    case "scala" => scalaReader
-    case v => Reader.error(s"Unknown output '$v'")
+    case ("scala", _) => scalaReader
+    case (v, p) => Reader.error(s"Unknown output '$v'", p)
   }.map { case (_, w) => w }
 
   private val genReader: Reader[GenConf] =

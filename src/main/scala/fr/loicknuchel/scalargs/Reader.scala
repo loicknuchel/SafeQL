@@ -9,7 +9,7 @@ sealed trait Reader[+A] {
 
   def read(args: Array[String]): Result[A] = read(Params(args))
 
-  def read(args: String): Result[A] = read(args.split(" ").map(_.trim).filter(_.nonEmpty))
+  def read(args: String): Result[A] = read(Params(args))
 
   def and[B](r: Reader[B]): Reader[(A, B)] = And(this, r)
 
@@ -32,21 +32,21 @@ sealed trait Reader[+A] {
 
   def map[B](f: A => B): Reader[B] = Map(this, f)
 
-  def mapTry[B](f: A => Either[ArgError, B]): Reader[B] = MapTry(this, f)
+  def mapTry[B](f: (A, Params) => Either[ArgError, B]): Reader[B] = MapTry(this, f)
 
-  def validate(p: A => Boolean, err: A => ArgError): Reader[A] = Filter(this, p, err)
+  def validate(p: A => Boolean, err: (A, Params) => ArgError): Reader[A] = Filter(this, p, err)
 
-  def validate(p: A => Boolean, validation: Option[String]): Reader[A] = validate(p, ValidationError(_, validation))
+  def validate(p: A => Boolean, validation: Option[String]): Reader[A] = validate(p, ValidationError(_, validation, _))
 
   def validate(p: A => Boolean, validation: String): Reader[A] = validate(p, Some(validation))
 
   def validate(p: A => Boolean): Reader[A] = validate(p, None)
 
-  def inEnum[B >: A](set: Set[B]): Reader[B] = validate(a => set.contains(a), InvalidEnumValue(_, set))
+  def inEnum[B >: A](set: Set[B]): Reader[B] = validate(set.contains(_), InvalidEnumValue(_, set, _))
 
   def inEnum[B >: A](v: B, o: B*): Reader[B] = inEnum((v :: o.toList).toSet)
 
-  def on[B](f: A => Reader[B]): Reader[(A, B)] = Dynamic(this, f)
+  def on[B](f: (A, Params) => Reader[B]): Reader[(A, B)] = Dynamic(this, f)
 }
 
 object Reader {
@@ -70,10 +70,10 @@ object Reader {
 
   def error[A](errs: ArgError): Error[A] = Error[A](errs)
 
-  def error[A](e: String): Error[A] = error(CustomError(e))
+  def error[A](e: String, p: Params): Error[A] = error(CustomError(e, p))
 
   final case class Arg(pos: Int, name: Option[String], values: Option[Set[String]]) extends Reader[String] {
-    override def read(params: Params): Result[String] = params.read(this).filter(v => values.forall(_.contains(v)), InvalidEnumValue(_, values.getOrElse(Set())))
+    override def read(params: Params): Result[String] = params.read(this).filter(v => values.forall(_.contains(v)), InvalidEnumValue(_, values.getOrElse(Set()), _))
 
     // ugly, I don't have a better way to mix covariance and String reader
     override def inEnum[B >: String](set: Set[B]): Reader[B] = Arg(pos, name, Some(set.asInstanceOf[Set[String]]))
@@ -108,20 +108,15 @@ object Reader {
   }
 
   final case class And[A, B](ra: Reader[A], rb: Reader[B]) extends Reader[(A, B)] {
-    override def read(params: Params): Result[(A, B)] = ra.read(params).chain((_, p) => rb.read(p))
+    override def read(params: Params): Result[(A, B)] = ra.read(params).and(rb.read)
   }
 
   final case class And2[A, B, C](ra: Reader[A], rb: Reader[B], rc: Reader[C]) extends Reader[(A, B, C)] {
-    override def read(params: Params): Result[(A, B, C)] = ra.read(params)
-      .chain((_, p) => rb.read(p))
-      .chain((_, p) => rc.read(p)).map { case ((a, b), c) => (a, b, c) }
+    override def read(params: Params): Result[(A, B, C)] = ra.read(params).and(rb.read).and(rc.read).map { case ((a, b), c) => (a, b, c) }
   }
 
   final case class And3[A, B, C, D](ra: Reader[A], rb: Reader[B], rc: Reader[C], rd: Reader[D]) extends Reader[(A, B, C, D)] {
-    override def read(params: Params): Result[(A, B, C, D)] = ra.read(params)
-      .chain((_, p) => rb.read(p))
-      .chain((_, p) => rc.read(p))
-      .chain((_, p) => rd.read(p)).map { case (((a, b), c), d) => (a, b, c, d) }
+    override def read(params: Params): Result[(A, B, C, D)] = ra.read(params).and(rb.read).and(rc.read).and(rd.read).map { case (((a, b), c), d) => (a, b, c, d) }
   }
 
   final case class Or[A](r1: Reader[A], r2: Reader[A]) extends Reader[A] {
@@ -140,20 +135,20 @@ object Reader {
     override def read(params: Params): Result[B] = r.read(params).map(f)
   }
 
-  final case class MapTry[A, B](r: Reader[A], f: A => Either[ArgError, B]) extends Reader[B] {
-    override def read(params: Params): Result[B] = r.read(params).flatMap((a, p) => Result.from(f(a), p))
+  final case class MapTry[A, B](r: Reader[A], f: (A, Params) => Either[ArgError, B]) extends Reader[B] {
+    override def read(params: Params): Result[B] = r.read(params).flatMap((a, p) => f(a, p).fold(Result(_), Result(_, p)))
   }
 
-  final case class Filter[A](r: Reader[A], f: A => Boolean, e: A => ArgError) extends Reader[A] {
+  final case class Filter[A](r: Reader[A], f: A => Boolean, e: (A, Params) => ArgError) extends Reader[A] {
     override def read(params: Params): Result[A] = r.read(params).filter(f, e)
   }
 
-  final case class Dynamic[A, B](r: Reader[A], f: A => Reader[B]) extends Reader[(A, B)] {
-    override def read(params: Params): Result[(A, B)] = r.read(params).chain((a, p) => f(a).read(p))
+  final case class Dynamic[A, B](r: Reader[A], f: (A, Params) => Reader[B]) extends Reader[(A, B)] {
+    override def read(params: Params): Result[(A, B)] = r.read(params).chain((a, p) => f(a, p).read(p))
   }
 
   final case class Error[A](errs: ArgError) extends Reader[A] {
-    override def read(params: Params): Result[A] = Result.Failure(errs, params)
+    override def read(params: Params): Result[A] = Result(errs)
   }
 
 }

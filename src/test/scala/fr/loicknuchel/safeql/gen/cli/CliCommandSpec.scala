@@ -101,11 +101,11 @@ object CliCommandSpec {
   val dbConf: DatabaseConfig = DatabaseConfig(
     imports = List("fr.loicknuchel.safeql.testingutils.Entities._"),
     schemas = Map("PUBLIC" -> SchemaConfig(tables = Map(
-      "users" -> TableConfig(alias = Some("u"), fields = Map(
-        "id" -> FieldConfig(customType = Some("User.Id")))),
+      "users" -> TableConfig(alias = "u", fields = Map(
+        "id" -> FieldConfig(customType = "User.Id"))),
       "categories" -> TableConfig(alias = "c", sort = TableConfig.Sort("name", NonEmptyList.of("-name", "id")), search = List("name"), fields = Map(
-        "id" -> FieldConfig(customType = Some("Category.Id")))),
-      "posts" -> TableConfig(alias = Some("p"), fields = Map(
-        "id" -> FieldConfig(customType = Some("Post.Id"))))
+        "id" -> FieldConfig(customType = "Category.Id"))),
+      "posts" -> TableConfig(alias = "p", fields = Map(
+        "id" -> FieldConfig(customType = "Post.Id")))
     ))))
 }
