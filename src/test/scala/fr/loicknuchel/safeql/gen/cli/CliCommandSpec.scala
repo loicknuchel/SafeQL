@@ -1,6 +1,7 @@
 package fr.loicknuchel.safeql.gen.cli
 
 import cats.data.NonEmptyList
+import fr.loicknuchel.safeql.gen.cli.CliCommandSpec.{dbConf, dbConfPath}
 import fr.loicknuchel.safeql.gen.cli.CliError.{InvalidValue, MultiError}
 import fr.loicknuchel.safeql.gen.writer.ScalaWriter
 import fr.loicknuchel.safeql.gen.writer.ScalaWriter.{DatabaseConfig, FieldConfig, SchemaConfig, TableConfig}
@@ -9,9 +10,6 @@ import fr.loicknuchel.safeql.testingutils.BaseSpec
 import pureconfig.ConfigSource
 
 class CliCommandSpec extends BaseSpec {
-  private val dbConfPath = "src/test/resources/cli/db.conf"
-  private val dbConf = ScalaWriter.DatabaseConfig(schemas = Map("PUBLIC" -> ScalaWriter.SchemaConfig()))
-
   describe("CliCommand") {
     it("should build commands") {
       val flyway = CliConf.ReaderConf.FlywayConf(NonEmptyList.of("classpath:sql_migrations"))
@@ -20,14 +18,14 @@ class CliCommandSpec extends BaseSpec {
       val w1 = CliConf.WriterConf.ScalaConf(None, None, None, None)
       val w2 = CliConf.WriterConf.ScalaConf(Some("target"), Some("io.test"), Some("KeepNames"), Some(dbConfPath))
 
-      CliCommand.from(CliConf.HelpConf()) shouldBe Right(CliCommand.Help())
-      CliCommand.from(CliConf.GenConf(flyway, w1)) shouldBe Right(CliCommand.GenWithFlyway(List("classpath:sql_migrations"), ScalaWriter()))
-      CliCommand.from(CliConf.GenConf(sqlFiles, w1)) shouldBe Right(CliCommand.GenWithSqlFiles(List("db.sql"), ScalaWriter()))
-      CliCommand.from(CliConf.GenConf(jdbc, w1)) shouldBe Right(CliCommand.GenWithH2Jdbc("jdbc:h2:mem", ScalaWriter()))
-      CliCommand.from(CliConf.GenConf(jdbc, w2)) shouldBe Right(CliCommand.GenWithH2Jdbc("jdbc:h2:mem", ScalaWriter("target", "io.test", IdentifierStrategy.KeepNames, dbConf)))
+      CliCommand.from(now, CliConf.HelpConf()) shouldBe Right(CliCommand.Help())
+      CliCommand.from(now, CliConf.GenConf(flyway, w1)) shouldBe Right(CliCommand.GenWithFlyway(List("classpath:sql_migrations"), ScalaWriter(now)))
+      CliCommand.from(now, CliConf.GenConf(sqlFiles, w1)) shouldBe Right(CliCommand.GenWithSqlFiles(List("db.sql"), ScalaWriter(now)))
+      CliCommand.from(now, CliConf.GenConf(jdbc, w1)) shouldBe Right(CliCommand.GenWithH2Jdbc("jdbc:h2:mem", ScalaWriter(now)))
+      CliCommand.from(now, CliConf.GenConf(jdbc, w2)) shouldBe Right(CliCommand.GenWithH2Jdbc("jdbc:h2:mem", ScalaWriter(now, "target", "io.test", IdentifierStrategy.KeepNames, dbConf)))
 
-      CliCommand.from(CliConf.GenConf(jdbc, w1.copy(identifiers = Some("bad")))) shouldBe Left(CliErrors(InvalidValue("Identifier strategy", "bad")))
-      CliCommand.from(CliConf.GenConf(jdbc, w1.copy(configFile = Some("bad")))) shouldBe Left(CliErrors(MultiError("Unable to read file bad (No such file or directory).")))
+      CliCommand.from(now, CliConf.GenConf(jdbc, w1.copy(identifiers = Some("bad")))) shouldBe Left(CliErrors(InvalidValue("Identifier strategy", "bad")))
+      CliCommand.from(now, CliConf.GenConf(jdbc, w1.copy(configFile = Some("bad")))) shouldBe Left(CliErrors(MultiError("Unable to read file bad (No such file or directory).")))
     }
     describe("buildIdfStrategy") {
       it("should validate identifier strategy") {
@@ -68,7 +66,11 @@ class CliCommandSpec extends BaseSpec {
             |    tables {
             |      users {
             |        alias = u
-            |        sorts = [name, {slug: s, label: Score, fields: [{name: score, asc: false}]}]
+            |        sorts = [
+            |          id,
+            |          {slug: name, label: name, fields: [name, -id]},
+            |          {slug: s, label: Score, fields: [{name: score, asc: false}]}
+            |        ]
             |        search = [name]
             |        fields {
             |          id {index: 1, custom-type: User.Id}
@@ -81,7 +83,10 @@ class CliCommandSpec extends BaseSpec {
             |}""".stripMargin).load[ScalaWriter.DatabaseConfig](r) shouldBe
           Right(DatabaseConfig(schemas = Map("PUBLIC" -> SchemaConfig(tables = Map("users" -> TableConfig(
             alias = Some("u"),
-            sorts = List(TableConfig.Sort("name"), TableConfig.Sort("s", "Score", "-score")),
+            sorts = List(
+              TableConfig.Sort("id"),
+              TableConfig.Sort("name", NonEmptyList.of("name", "-id")),
+              TableConfig.Sort("s", "Score", "-score")),
             search = List("name"),
             fields = Map(
               "id" -> FieldConfig(1, "User.Id"),
@@ -90,4 +95,18 @@ class CliCommandSpec extends BaseSpec {
       }
     }
   }
+}
+
+object CliCommandSpec {
+  val dbConfPath = "src/test/resources/cli/db.conf"
+  val dbConf: DatabaseConfig = DatabaseConfig(
+    imports = List("fr.loicknuchel.safeql.testingutils.Entities._"),
+    schemas = Map("PUBLIC" -> SchemaConfig(tables = Map(
+      "users" -> TableConfig(alias = Some("u"), fields = Map(
+        "id" -> FieldConfig(customType = Some("User.Id")))),
+      "categories" -> TableConfig(alias = "c", sort = TableConfig.Sort("name", NonEmptyList.of("-name", "id")), search = List("name"), fields = Map(
+        "id" -> FieldConfig(customType = Some("Category.Id")))),
+      "posts" -> TableConfig(alias = Some("p"), fields = Map(
+        "id" -> FieldConfig(customType = Some("Post.Id"))))
+    ))))
 }

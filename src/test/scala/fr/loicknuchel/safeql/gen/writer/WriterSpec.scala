@@ -6,7 +6,7 @@ import fr.loicknuchel.safeql.testingutils.FileSpec
 
 class WriterSpec extends FileSpec {
   protected val root = "target/tests-WriterSpec"
-  private val writer = ScalaWriter(directory = root)
+  private val writer = ScalaWriter(now, directory = root)
   private val users = Database.Table("PUBLIC", "users", fields = List(
     Database.Field("PUBLIC", "users", "id", 4, "INTEGER", "INT NOT NULL", nullable = false, 1, None, None),
     Database.Field("PUBLIC", "users", "name", 12, "VARCHAR", "VARCHAR(50)", nullable = true, 2, None, None)))

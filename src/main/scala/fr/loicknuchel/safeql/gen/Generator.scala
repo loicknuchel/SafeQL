@@ -1,5 +1,6 @@
 package fr.loicknuchel.safeql.gen
 
+import java.time.Instant
 import java.util.UUID
 
 import cats.effect.IO
@@ -21,6 +22,7 @@ object Generator {
    */
 
   def flyway(flywayLocations: String*): FlywayGeneratorBuilder = {
+    val now = Instant.now()
     val reader = H2Reader(
       url = s"jdbc:h2:mem:${UUID.randomUUID()};MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1",
       schema = Some("PUBLIC"),
@@ -29,19 +31,19 @@ object Generator {
       .dataSource(new DriverDataSource(this.getClass.getClassLoader, reader.driver, reader.url, reader.user, reader.pass))
       .locations(flywayLocations: _*)
       .load()
-    FlywayGeneratorBuilder(flyway, reader)
+    FlywayGeneratorBuilder(now, flyway, reader)
   }
 
-  case class FlywayGeneratorBuilder(flyway: Flyway, reader: H2Reader) {
-    def writer(writer: Writer): FlywayGenerator = FlywayGenerator(flyway, reader, writer)
+  case class FlywayGeneratorBuilder(now: Instant, flyway: Flyway, reader: H2Reader) {
+    def writer(writer: Writer): FlywayGenerator = FlywayGenerator(now, flyway, reader, writer)
 
-    def excludes(regex: String): FlywayGeneratorBuilder = FlywayGeneratorBuilder(flyway, reader.excludes(regex))
+    def excludes(regex: String): FlywayGeneratorBuilder = FlywayGeneratorBuilder(now, flyway, reader.excludes(regex))
   }
 
-  case class FlywayGenerator(flyway: Flyway, reader: H2Reader, writer: Writer) {
+  case class FlywayGenerator(now: Instant, flyway: Flyway, reader: H2Reader, writer: Writer) {
     def generate(): IO[Unit] = IO(flyway.migrate()).flatMap(_ => Generator.generate(reader, writer))
 
-    def excludes(regex: String): FlywayGenerator = FlywayGenerator(flyway, reader.excludes(regex), writer)
+    def excludes(regex: String): FlywayGenerator = FlywayGenerator(now, flyway, reader.excludes(regex), writer)
   }
 
   /**
@@ -49,27 +51,28 @@ object Generator {
    */
 
   def sqlFiles(paths: List[String]): SQLFilesGeneratorBuilder = {
+    val now = Instant.now()
     val reader = H2Reader(
       url = s"jdbc:h2:mem:${UUID.randomUUID()};MODE=PostgreSQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1",
       schema = Some("PUBLIC"),
       excludes = None)
-    SQLFilesGeneratorBuilder(paths, reader)
+    SQLFilesGeneratorBuilder(now, paths, reader)
   }
 
-  case class SQLFilesGeneratorBuilder(paths: List[String], reader: H2Reader) {
-    def writer(writer: Writer): SQLFilesGenerator = SQLFilesGenerator(paths, reader, writer)
+  case class SQLFilesGeneratorBuilder(now: Instant, paths: List[String], reader: H2Reader) {
+    def writer(writer: Writer): SQLFilesGenerator = SQLFilesGenerator(now, paths, reader, writer)
 
-    def excludes(regex: String): SQLFilesGeneratorBuilder = SQLFilesGeneratorBuilder(paths, reader.excludes(regex))
+    def excludes(regex: String): SQLFilesGeneratorBuilder = SQLFilesGeneratorBuilder(now, paths, reader.excludes(regex))
   }
 
-  case class SQLFilesGenerator(paths: List[String], reader: H2Reader, writer: Writer) {
+  case class SQLFilesGenerator(now: Instant, paths: List[String], reader: H2Reader, writer: Writer) {
     def generate(): IO[Unit] = for {
       files <- paths.map(FileUtils.read).sequence.toIO
       _ <- files.map(exec(_, reader.xa)).sequence
       _ <- Generator.generate(reader, writer)
     } yield ()
 
-    def excludes(regex: String): SQLFilesGenerator = SQLFilesGenerator(paths, reader.excludes(regex), writer)
+    def excludes(regex: String): SQLFilesGenerator = SQLFilesGenerator(now, paths, reader.excludes(regex), writer)
 
     private def exec(script: String, xa: doobie.Transactor[IO]): IO[Int] =
       Update0(script, None).run.transact(xa).recoverWith { case NonFatal(e) => IO.raiseError(FailedScript(script, e)) }

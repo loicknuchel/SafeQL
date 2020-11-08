@@ -1,11 +1,12 @@
 package fr.loicknuchel.safeql.gen.cli
 
+import java.time.Instant
+
 import cats.data.NonEmptyList
 import cats.effect.IO
 import fr.loicknuchel.safeql.gen.cli.CliConf.{ReaderConf, WriterConf}
-import fr.loicknuchel.safeql.gen.cli.CliError.{InvalidValue, MultiError, UnsupportedOperation}
+import fr.loicknuchel.safeql.gen.cli.CliError.{InvalidValue, MultiError}
 import fr.loicknuchel.safeql.gen.reader.H2Reader
-import fr.loicknuchel.safeql.gen.writer.ScalaWriter.TableConfig
 import fr.loicknuchel.safeql.gen.writer.{ScalaWriter, Writer}
 import fr.loicknuchel.safeql.gen.{Database, Generator}
 import fr.loicknuchel.safeql.utils.Extensions._
@@ -34,10 +35,10 @@ private[gen] object CliCommand {
     override def run: IO[Unit] = IO(println("TODO: CLI help ^^"))
   }
 
-  def from(conf: CliConf): Either[CliErrors, CliCommand] = conf match {
+  def from(now: Instant, conf: CliConf): Either[CliErrors, CliCommand] = conf match {
     case CliConf.GenConf(reader, writer) =>
       val w = writer match {
-        case c: WriterConf.ScalaConf => buildScalaWriter(c)
+        case c: WriterConf.ScalaConf => buildScalaWriter(now, c)
       }
       reader match {
         case ReaderConf.FlywayConf(locations) => w.map(sw => GenWithFlyway(locations.toList, sw))
@@ -47,13 +48,13 @@ private[gen] object CliCommand {
     case CliConf.HelpConf() => Right(Help())
   }
 
-  private def buildScalaWriter(c: WriterConf.ScalaConf): Either[CliErrors, ScalaWriter] = {
+  private def buildScalaWriter(now: Instant, c: WriterConf.ScalaConf): Either[CliErrors, ScalaWriter] = {
     for {
       idf <- c.identifiers.map(buildIdfStrategy).getOrElse(Right(ScalaWriter.default.identifierStrategy))
       conf <- c.configFile.map(buildDbConf).getOrElse(Right(ScalaWriter.default.config))
       dir = c.directory.getOrElse(ScalaWriter.default.directory)
       pkg = c.packageName.getOrElse(ScalaWriter.default.packageName)
-    } yield ScalaWriter(dir, pkg, idf, conf)
+    } yield ScalaWriter(now, dir, pkg, idf, conf)
   }
 
   private[cli] def buildIdfStrategy(s: String): Either[CliErrors, Writer.IdentifierStrategy] =
@@ -73,11 +74,12 @@ private[gen] object CliCommand {
       .flatMap(NonEmptyList.fromList(_).toEither(ConfigReaderFailures(ConvertFailure(WrongSizeList(1, 0), cur))))
 
     protected implicit val fieldReader: ConfigReader[ScalaWriter.FieldConfig] = deriveReader[ScalaWriter.FieldConfig]
-    protected implicit val tableSortFieldReader: ConfigReader[ScalaWriter.TableConfig.Sort.Field] = deriveReader[ScalaWriter.TableConfig.Sort.Field]
-    protected val fullTableSortReader: ConfigReader[TableConfig.Sort] = deriveReader[ScalaWriter.TableConfig.Sort]
+    protected val tableSortFieldReaderFull: ConfigReader[ScalaWriter.TableConfig.Sort.Field] = deriveReader[ScalaWriter.TableConfig.Sort.Field]
+    protected implicit val tableSortFieldReader: ConfigReader[ScalaWriter.TableConfig.Sort.Field] =(cur: ConfigCursor) =>
+      cur.asString.map(s => ScalaWriter.TableConfig.Sort.Field(s)).fold(_ => tableSortFieldReaderFull.from(cur), Right(_))
+    protected val tableSortReaderFull: ConfigReader[ScalaWriter.TableConfig.Sort] = deriveReader[ScalaWriter.TableConfig.Sort]
     protected implicit val tableSortReader: ConfigReader[ScalaWriter.TableConfig.Sort] = (cur: ConfigCursor) =>
-      cur.asString.map(s => ScalaWriter.TableConfig.Sort(s))
-        .fold(_ => fullTableSortReader.from(cur), Right(_))
+      cur.asString.map(s => ScalaWriter.TableConfig.Sort(s)).fold(_ => tableSortReaderFull.from(cur), Right(_))
     protected implicit val tableReader: ConfigReader[ScalaWriter.TableConfig] = deriveReader[ScalaWriter.TableConfig]
     protected implicit val schemaReader: ConfigReader[ScalaWriter.SchemaConfig] = deriveReader[ScalaWriter.SchemaConfig]
     protected implicit val scaladocReader: ConfigReader[Option[Database.Table] => Option[String]] = (cur: ConfigCursor) => cur.asString.map(Some(_).filter(_.nonEmpty)).map(doc => _ => doc)

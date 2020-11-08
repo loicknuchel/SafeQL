@@ -1,5 +1,7 @@
 package fr.loicknuchel.safeql.gen
 
+import java.time.Instant
+
 import fr.loicknuchel.safeql.gen.cli.{CliCommand, CliConf, CliErrors}
 
 /**
@@ -16,7 +18,8 @@ object Cli {
   // `safeql gen --input h2 --url jdbc:h2:mem --schema PUBLIC --output scala --dir src/test/scala --package fr.loicknuchel.safeql.testingutils.database --config dbconf.json`
   def main(args: Array[String]): Unit = {
     println(s"Executing SafeQL CLI with args: ${args.mkString(" ")}")
-    CliConf.reader.parse(args).left.map(CliErrors.from).flatMap(CliCommand.from) match {
+    val now = Instant.now()
+    CliConf.reader.parse(args).left.map(CliErrors.from).flatMap(CliCommand.from(now, _)) match {
       case Left(errs) => println(errs.message)
       case Right(cmd) => cmd.run.unsafeRunSync()
     }
