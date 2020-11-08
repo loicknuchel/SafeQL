@@ -14,6 +14,8 @@ import pureconfig.error.{ConfigReaderFailures, ConvertFailure, WrongSizeList}
 import pureconfig.{ConfigCursor, ConfigReader, ConfigSource, Derivation}
 
 private[gen] sealed trait CliCommand extends Product with Serializable {
+  def out(text: => String): IO[Unit] = IO(println(text)) // cheap logger ^^
+
   def run: IO[Unit]
 }
 
@@ -32,7 +34,7 @@ private[gen] object CliCommand {
   }
 
   final case class Help() extends CliCommand {
-    override def run: IO[Unit] = IO(println("TODO: CLI help ^^"))
+    override def run: IO[Unit] = out("TODO: CLI help ^^")
   }
 
   def from(now: Instant, conf: CliConf): Either[CliErrors, CliCommand] = conf match {
@@ -50,10 +52,10 @@ private[gen] object CliCommand {
 
   private def buildScalaWriter(now: Instant, c: WriterConf.ScalaConf): Either[CliErrors, ScalaWriter] = {
     for {
-      idf <- c.identifiers.map(buildIdfStrategy).getOrElse(Right(ScalaWriter.default.identifierStrategy))
       conf <- c.configFile.map(buildDbConf).getOrElse(Right(ScalaWriter.default.config))
       dir = c.directory.getOrElse(ScalaWriter.default.directory)
       pkg = c.packageName.getOrElse(ScalaWriter.default.packageName)
+      idf = c.identifiers.getOrElse(ScalaWriter.default.identifierStrategy)
     } yield ScalaWriter(now, dir, pkg, idf, conf)
   }
 
@@ -75,7 +77,7 @@ private[gen] object CliCommand {
 
     protected implicit val fieldReader: ConfigReader[ScalaWriter.FieldConfig] = deriveReader[ScalaWriter.FieldConfig]
     protected val tableSortFieldReaderFull: ConfigReader[ScalaWriter.TableConfig.Sort.Field] = deriveReader[ScalaWriter.TableConfig.Sort.Field]
-    protected implicit val tableSortFieldReader: ConfigReader[ScalaWriter.TableConfig.Sort.Field] =(cur: ConfigCursor) =>
+    protected implicit val tableSortFieldReader: ConfigReader[ScalaWriter.TableConfig.Sort.Field] = (cur: ConfigCursor) =>
       cur.asString.map(s => ScalaWriter.TableConfig.Sort.Field(s)).fold(_ => tableSortFieldReaderFull.from(cur), Right(_))
     protected val tableSortReaderFull: ConfigReader[ScalaWriter.TableConfig.Sort] = deriveReader[ScalaWriter.TableConfig.Sort]
     protected implicit val tableSortReader: ConfigReader[ScalaWriter.TableConfig.Sort] = (cur: ConfigCursor) =>

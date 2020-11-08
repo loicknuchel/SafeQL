@@ -11,6 +11,7 @@ import fr.loicknuchel.safeql.gen.cli.{CliCommand, CliConf, CliErrors}
 // FIXME: add optional `exclude` param
 // FIXME: add optional `schema` param
 // FIXME: add `--help` command
+// FIXME: add reporting to commands (generated files in...)
 object Cli {
   // allows to generate tables from CLI with command like:
   // `safeql gen --flyway classpath:sql_migrations --output scala --dir src/test/scala --package fr.loicknuchel.safeql.testingutils.database --config dbconf.json`

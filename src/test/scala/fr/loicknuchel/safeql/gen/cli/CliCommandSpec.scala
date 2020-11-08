@@ -2,10 +2,10 @@ package fr.loicknuchel.safeql.gen.cli
 
 import cats.data.NonEmptyList
 import fr.loicknuchel.safeql.gen.cli.CliCommandSpec.{dbConf, dbConfPath}
-import fr.loicknuchel.safeql.gen.cli.CliError.{InvalidValue, MultiError}
+import fr.loicknuchel.safeql.gen.cli.CliError.MultiError
 import fr.loicknuchel.safeql.gen.writer.ScalaWriter
 import fr.loicknuchel.safeql.gen.writer.ScalaWriter.{DatabaseConfig, FieldConfig, SchemaConfig, TableConfig}
-import fr.loicknuchel.safeql.gen.writer.Writer.IdentifierStrategy
+import fr.loicknuchel.safeql.gen.writer.Writer.IdentifierStrategy.KeepNames
 import fr.loicknuchel.safeql.testingutils.BaseSpec
 import pureconfig.ConfigSource
 
@@ -16,15 +16,14 @@ class CliCommandSpec extends BaseSpec {
       val sqlFiles = CliConf.ReaderConf.SqlFilesConf(List("db.sql"))
       val jdbc = CliConf.ReaderConf.JdbcConf("h2", "jdbc:h2:mem")
       val w1 = CliConf.WriterConf.ScalaConf(None, None, None, None)
-      val w2 = CliConf.WriterConf.ScalaConf(Some("target"), Some("io.test"), Some("KeepNames"), Some(dbConfPath))
+      val w2 = CliConf.WriterConf.ScalaConf(Some("target"), Some("io.test"), Some(KeepNames), Some(dbConfPath))
 
       CliCommand.from(now, CliConf.HelpConf()) shouldBe Right(CliCommand.Help())
       CliCommand.from(now, CliConf.GenConf(flyway, w1)) shouldBe Right(CliCommand.GenWithFlyway(List("classpath:sql_migrations"), ScalaWriter(now)))
       CliCommand.from(now, CliConf.GenConf(sqlFiles, w1)) shouldBe Right(CliCommand.GenWithSqlFiles(List("db.sql"), ScalaWriter(now)))
       CliCommand.from(now, CliConf.GenConf(jdbc, w1)) shouldBe Right(CliCommand.GenWithH2Jdbc("jdbc:h2:mem", ScalaWriter(now)))
-      CliCommand.from(now, CliConf.GenConf(jdbc, w2)) shouldBe Right(CliCommand.GenWithH2Jdbc("jdbc:h2:mem", ScalaWriter(now, "target", "io.test", IdentifierStrategy.KeepNames, dbConf)))
+      CliCommand.from(now, CliConf.GenConf(jdbc, w2)) shouldBe Right(CliCommand.GenWithH2Jdbc("jdbc:h2:mem", ScalaWriter(now, "target", "io.test", KeepNames, dbConf)))
 
-      CliCommand.from(now, CliConf.GenConf(jdbc, w1.copy(identifiers = Some("bad")))) shouldBe Left(CliErrors(InvalidValue("Identifier strategy", "bad")))
       CliCommand.from(now, CliConf.GenConf(jdbc, w1.copy(configFile = Some("bad")))) shouldBe Left(CliErrors(MultiError("Unable to read file bad (No such file or directory).")))
     }
     describe("buildIdfStrategy") {

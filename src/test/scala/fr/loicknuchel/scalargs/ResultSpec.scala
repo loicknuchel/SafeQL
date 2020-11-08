@@ -15,9 +15,9 @@ class ResultSpec extends BaseSpec {
       ok.map(_.length) shouldBe Result.Success(2, p1)
       err.map(_.length) shouldBe err
 
-      ok.flatMap(_ => Result.Success(1, params)) shouldBe Result.Success(1, params)
-      ok.flatMap(_ => err) shouldBe err
-      err.flatMap(_ => ok) shouldBe err
+      ok.flatMap((_, _) => Result.Success(1, params)) shouldBe Result.Success(1, params)
+      ok.flatMap((_, _) => err) shouldBe err
+      err.flatMap((_, _) => ok) shouldBe err
     }
     it("should filter a value") {
       ok.filter(_ => true) shouldBe ok

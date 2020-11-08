@@ -10,9 +10,13 @@ sealed trait Reader[+A] {
 
   def and[B, C](r1: Reader[B], r2: Reader[C]): Reader[(A, B, C)] = AndReader2(this, r1, r2)
 
+  def and[B, C, D](r1: Reader[B], r2: Reader[C], r3: Reader[D]): Reader[(A, B, C, D)] = AndReader3(this, r1, r2, r3)
+
   def or[B >: A](r: Reader[B]): Reader[B] = OrReader(this, r)
 
   def map[B](f: A => B): Reader[B] = MapReader(this, f)
+
+  def mapTry[B](f: A => Either[Errs, B]): Reader[B] = MapTryReader(this, f)
 
   def validate(p: A => Boolean, err: A => Errs): Reader[A] = FilterReader(this, p, err)
 
@@ -91,7 +95,16 @@ object Reader {
   }
 
   case class AndReader2[A, B, C](ra: Reader[A], rb: Reader[B], rc: Reader[C]) extends Reader[(A, B, C)] {
-    override def read(params: Params): Result[(A, B, C)] = ra.read(params).chain((_, p) => rb.read(p)).chain((_, p) => rc.read(p)).map { case ((a, b), c) => (a, b, c) }
+    override def read(params: Params): Result[(A, B, C)] = ra.read(params)
+      .chain((_, p) => rb.read(p))
+      .chain((_, p) => rc.read(p)).map { case ((a, b), c) => (a, b, c) }
+  }
+
+  case class AndReader3[A, B, C, D](ra: Reader[A], rb: Reader[B], rc: Reader[C], rd: Reader[D]) extends Reader[(A, B, C, D)] {
+    override def read(params: Params): Result[(A, B, C, D)] = ra.read(params)
+      .chain((_, p) => rb.read(p))
+      .chain((_, p) => rc.read(p))
+      .chain((_, p) => rd.read(p)).map { case (((a, b), c), d) => (a, b, c, d) }
   }
 
   case class OrReader[A](r1: Reader[A], r2: Reader[A]) extends Reader[A] {
@@ -100,6 +113,10 @@ object Reader {
 
   case class MapReader[A, B](r: Reader[A], f: A => B) extends Reader[B] {
     override def read(params: Params): Result[B] = r.read(params).map(f)
+  }
+
+  case class MapTryReader[A, B](r: Reader[A], f: A => Either[Errs, B]) extends Reader[B] {
+    override def read(params: Params): Result[B] = r.read(params).flatMap((a, p) => Result.from(f(a), p))
   }
 
   case class FilterReader[A](r: Reader[A], f: A => Boolean, e: A => Errs) extends Reader[A] {

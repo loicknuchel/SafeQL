@@ -4,6 +4,8 @@ import cats.data.NonEmptyList
 import fr.loicknuchel.safeql.gen.cli.CliConf.ReaderConf.{FlywayConf, JdbcConf, SqlFilesConf}
 import fr.loicknuchel.safeql.gen.cli.CliConf.WriterConf.ScalaConf
 import fr.loicknuchel.safeql.gen.cli.CliConf.{GenConf, HelpConf}
+import fr.loicknuchel.safeql.gen.writer.Writer.IdentifierStrategy
+import fr.loicknuchel.safeql.gen.writer.Writer.IdentifierStrategy.KeepNames
 import fr.loicknuchel.safeql.testingutils.BaseSpec
 import fr.loicknuchel.scalargs.Errs
 
@@ -19,8 +21,8 @@ class CliConfSpec extends BaseSpec {
 
       CliConf.reader.parse("gen --flyway fw --output scala --dir /tmp") shouldBe Right(GenConf(flywayConf("fw"), scalaConf(Some("/tmp"))))
       CliConf.reader.parse("gen --flyway fw --output scala --dir /tmp --package io.db") shouldBe Right(GenConf(flywayConf("fw"), scalaConf(Some("/tmp"), Some("io.db"))))
-      CliConf.reader.parse("gen --flyway fw --output scala --dir /tmp --package io.db --identifiers KeepNames") shouldBe Right(GenConf(flywayConf("fw"), scalaConf(Some("/tmp"), Some("io.db"), Some("KeepNames"))))
-      CliConf.reader.parse("gen --flyway fw --output scala --dir /tmp --package io.db --identifiers KeepNames --config dbconf.json") shouldBe Right(GenConf(flywayConf("fw"), scalaConf(Some("/tmp"), Some("io.db"), Some("KeepNames"), Some("dbconf.json"))))
+      CliConf.reader.parse("gen --flyway fw --output scala --dir /tmp --package io.db --identifiers KeepNames") shouldBe Right(GenConf(flywayConf("fw"), scalaConf(Some("/tmp"), Some("io.db"), Some(KeepNames))))
+      CliConf.reader.parse("gen --flyway fw --output scala --dir /tmp --package io.db --identifiers KeepNames --config dbconf.json") shouldBe Right(GenConf(flywayConf("fw"), scalaConf(Some("/tmp"), Some("io.db"), Some(KeepNames), Some("dbconf.json"))))
     }
     it("should nicely handle errors") {
       CliConf.reader.parse("gen --flyway fw --output bad") shouldBe Left(Errs.noAlternative(Errs.custom("Unknown output 'bad'"), Errs.validation(false, Some("Use --help to see doc"))))
@@ -30,5 +32,5 @@ class CliConfSpec extends BaseSpec {
 
   private def flywayConf(l: String, o: String*): FlywayConf = FlywayConf(NonEmptyList.of(l, o: _*))
 
-  private def scalaConf(directory: Option[String] = None, packageName: Option[String] = None, identifiers: Option[String] = None, configFile: Option[String] = None): ScalaConf = ScalaConf(directory, packageName, identifiers, configFile)
+  private def scalaConf(directory: Option[String] = None, packageName: Option[String] = None, identifiers: Option[IdentifierStrategy] = None, configFile: Option[String] = None): ScalaConf = ScalaConf(directory, packageName, identifiers, configFile)
 }

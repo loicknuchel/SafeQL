@@ -1,11 +1,14 @@
 package fr.loicknuchel.scalargs
 
-sealed trait Result[+A] {
+sealed trait Result[+A] extends Product with Serializable {
   val params: Params
 
   def map[B](f: A => B): Result[B]
 
-  def flatMap[B](f: A => Result[B]): Result[B]
+  def flatMap[B](f: (A, Params) => Result[B]): Result[B]
+
+  // like `flatMap` but keep the previous result
+  def chain[B](f: (A, Params) => Result[B]): Result[(A, B)] = flatMap((a, p) => f(a, p).map(b => (a, b)))
 
   def filter(p: A => Boolean, e: A => Errs): Result[A]
 
@@ -15,9 +18,6 @@ sealed trait Result[+A] {
 
   def filter(p: A => Boolean): Result[A] = filter(p, None)
 
-  // like `flatMap` but with Params as parameter and keep the previous result
-  def chain[B](f: (A, Params) => Result[B]): Result[(A, B)] = flatMap(a => f(a, params).map(b => (a, b)))
-
   def orElse[B >: A](r: => Result[B]): Result[B]
 
   def toEither: Either[Errs, (A, Params)]
@@ -25,10 +25,12 @@ sealed trait Result[+A] {
 
 object Result {
 
+  def from[A](e: Either[Errs, A], params: Params): Result[A] = e.fold(Result.Failure(_, params), Result.Success(_, params))
+
   case class Success[A](value: A, params: Params) extends Result[A] {
     override def map[B](f: A => B): Result[B] = Success(f(value), params)
 
-    override def flatMap[B](f: A => Result[B]): Result[B] = f(value)
+    override def flatMap[B](f: (A, Params) => Result[B]): Result[B] = f(value, params)
 
     override def filter(p: A => Boolean, e: A => Errs): Result[A] = if (p(value)) this else Failure(e(value), params)
 
@@ -40,7 +42,7 @@ object Result {
   case class Failure(errs: Errs, params: Params) extends Result[Nothing] {
     override def map[B](f: Nothing => B): Result[B] = this
 
-    override def flatMap[B](f: Nothing => Result[B]): Result[B] = this
+    override def flatMap[B](f: (Nothing, Params) => Result[B]): Result[B] = this
 
     override def filter(p: Nothing => Boolean, e: Nothing => Errs): Result[Nothing] = this
 
