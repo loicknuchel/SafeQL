@@ -15,8 +15,8 @@ developers := List(Developer("loicknuchel", "Loïc Knuchel", "loicknuchel@gmail.
 scmInfo := Some(ScmInfo(url("https://github.com/loicknuchel/SafeQL"), "git@github.com:loicknuchel/SafeQL.git"))
 
 libraryDependencies ++= Seq(
-  "org.tpolecat" %% "doobie-core" % "0.9.2",
-  "org.tpolecat" %% "doobie-h2" % "0.9.2", // for generator
+  "org.tpolecat" %% "doobie-core" % "0.9.4",
+  "org.tpolecat" %% "doobie-h2" % "0.9.4", // for generator
   "org.flywaydb" % "flyway-core" % "7.1.0", // for generator
   "com.github.pureconfig" %% "pureconfig" % "0.14.0", // for CLI
   "org.slf4j" % "slf4j-api" % "1.7.30",
