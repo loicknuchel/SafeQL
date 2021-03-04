@@ -27,11 +27,11 @@ jobs:
       jdk: openjdk8
       script: sbt ++$TRAVIS_SCALA_VERSION test
     - name: test 2.12 & jdk11
-      scala: [ 2.12.12 ]
+      scala: [ 2.12.13 ]
       jdk: openjdk11
       script: sbt ++$TRAVIS_SCALA_VERSION test
     - name: test 2.12 & jdk8
-      scala: [ 2.12.12 ]
+      scala: [ 2.12.13 ]
       jdk: openjdk8
       script: sbt ++$TRAVIS_SCALA_VERSION test
     - name: coverage
