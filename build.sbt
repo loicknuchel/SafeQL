@@ -20,7 +20,7 @@ libraryDependencies ++= Seq(
   "org.flywaydb" % "flyway-core" % "7.1.0", // for generator
   "com.github.pureconfig" %% "pureconfig" % "0.14.0", // for CLI
   "org.slf4j" % "slf4j-api" % "1.7.30",
-  "ch.qos.logback" % "logback-classic" % "1.2.3",
+  "ch.qos.logback" % "logback-classic" % "1.2.6",
   "org.scalatest" %% "scalatest" % "3.2.2" % Test)
 
 // option added by addSbtPlugin("io.github.davidgregory084" % "sbt-tpolecat" % "0.1.14")
