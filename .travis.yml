@@ -19,11 +19,11 @@ jobs:
   include:
     # stage="test" if no stage is specified
     - name: test 2.13 & jdk11
-      scala: [ 2.13.3 ]
+      scala: [ 2.13.13 ]
       jdk: openjdk11
       script: sbt ++$TRAVIS_SCALA_VERSION test
     - name: test 2.13 & jdk8
-      scala: [ 2.13.3 ]
+      scala: [ 2.13.13 ]
       jdk: openjdk8
       script: sbt ++$TRAVIS_SCALA_VERSION test
     - name: test 2.12 & jdk11
@@ -35,7 +35,7 @@ jobs:
       jdk: openjdk8
       script: sbt ++$TRAVIS_SCALA_VERSION test
     - name: coverage
-      scala: [ 2.13.3 ]
+      scala: [ 2.13.13 ]
       jdk: openjdk11
       script: sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport
     # run ci-release only if previous stages passed
